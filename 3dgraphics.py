@@ -46,6 +46,16 @@ def multiply2d(p, multiplier):
     p.y *= multiplier.y
     return p
 
+def multiply3d(vector, vector2):
+    """Multiplies the 3d vector by another 3d vector"""
+    newVec = Vec3(vector.x * vector2.x, vector.y * vector2.y, vector.z * vector2.z)
+    return newVec
+
+def add3d(vector, vector2):
+    """Adds two 3d vectors"""
+    newVec = Vec3(vector.x + vector2.x, vector.y + vector2.y, vector.z + vector2.z)
+    return newVec
+
 # Classes
 class window3d:
     """Creates a window used for 3d rendering"""
@@ -93,9 +103,9 @@ class renderObject:
         # a mesh is made out of three points
         for i in range(0, len(self.vertices), 3):
             # Get the position of all the seperate points
-            p1 = multiply2d(convert3d2d(self.vertices[i], self.rotation), Point(self.scale, self.scale))
-            p2 = multiply2d(convert3d2d(self.vertices[i + 1], self.rotation), Point(self.scale, self.scale))
-            p3 = multiply2d(convert3d2d(self.vertices[i + 2], self.rotation), Point(self.scale, self.scale))
+            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale), self.position), self.rotation)
+            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation)
+            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation)
 
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
