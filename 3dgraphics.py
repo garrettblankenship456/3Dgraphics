@@ -1,12 +1,4 @@
 # Creating 3d graphics from 2d graphics
-
-# Plans and ideas
-"""
-I want to make each point an offset from the position thats provided in the
-renderObject class, that way the position is in the center and not top left front
-of the object.
-"""
-
 # Imports
 from graphics import *
 import math
@@ -46,9 +38,9 @@ def multiply2d(p, multiplier):
     p.y *= multiplier.y
     return p
 
-def multiply3d(vector, vector2):
+def multiply3d(vector, multiplier):
     """Multiplies the 3d vector by another 3d vector"""
-    newVec = Vec3(vector.x * vector2.x, vector.y * vector2.y, vector.z * vector2.z)
+    newVec = Vec3(vector.x * multiplier, vector.y * multiplier, vector.z * multiplier)
     return newVec
 
 def add3d(vector, vector2):
@@ -62,6 +54,7 @@ class window3d:
     def __init__(self, title, x, y):
         # Initialize the objects variables
         self.window = GraphWin(title, x, y)
+        self.window.setBackground("white")
         self.title = title
         self.xSize = x
         self.ySize = y
@@ -74,6 +67,8 @@ class window3d:
         for o in self.objects:
             for p in o.polys:
                 p.undraw()
+            o.update()
+            for p in o.polys:
                 p.draw(self.window)
 
     def drawObj(self, obj):
@@ -112,18 +107,46 @@ class renderObject:
 
     def render(self, window):
         """Draws the object to the screen"""
-        pass
+        window.drawObj(self)
+
+    def update(self):
+        """Updates the object"""
+        # Update the position of all the vertices according to the rotation
+        # Update vertices for rotation on the Z axis
+
+        # Update the vertices positions
+        self.polys = [] # Clear array
+        self.genPolygons()
 
     def setScale(self, scale):
         """Sets the scale of the vertices"""
         self.scale = scale
+
+    def move(self, pos):
+        """Moves the object by the position given"""
+        self.position.x += pos.x
+        self.position.y += pos.y
+        self.position.z += pos.z
+
+    def setPos(self, pos):
+        """Sets the position of the object"""
+        self.position = pos
+
+    def rotate(self, rotation):
+        """Increases or decreases the rotation of the object"""
+        self.rotation.x += rotation.x
+        self.rotation.y += rotation.y
+        self.rotation.z += rotation.z
+
+    def setRotation(self, rotation):
+        """Sets the rotation of the object"""
+        self.rotation = rotation
 
 class cube(renderObject):
     """A renderable cube"""
     def __init__(self):
         # Initialize the vertices
         self.vertices = []
-
 
 # Run the main function if this file is ran
 def main():
@@ -132,14 +155,24 @@ def main():
 
     # Generate object
     print("Generating triangle")
-    tri = renderObject([Vec3(0.5, 0, 1), Vec3(0, 1, 1), Vec3(1, 1, 1)], Vec3(320, 240, 0), Vec3(0, 0, 0))
+    tri = renderObject([Vec3(0, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1)], Vec3(320, 240, 0), Vec3(0, 0, 0))
     tri.setScale(100)
     tri.genPolygons()
-    tri.render(window)
+    #tri.render(window)
 
-    #window.drawObj(tri)
-    window.update()
+    print("Generating square")
+    square = renderObject([
+        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1
+        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2
+    ], Vec3(320, 240, 0), Vec3(0, 0, 0))
+    square.setScale(100)
+    square.genPolygons()
+    square.render(window)
 
+    while True:
+        square.move(Vec3(4, 4, 0))
+        window.update()
+        sleep(0.1)
 
     window.window.getMouse()
 
