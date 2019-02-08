@@ -25,7 +25,8 @@ class Vec3:
         self.z = z
 
     def __str__(self):
-        print("Vector: X = " + self.x + "; Y = " + self.y + "; Z = " + self.z)
+        print("Vector: X =", self.x, " Y =", self.y, " Z = ", self.z)
+        return ""
 
 # Functions
 def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
@@ -40,7 +41,9 @@ def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
     # Get point data for rotation of the Z axis
     p = [position.x * math.cos(radZ) - position.y * math.sin(radZ), position.y * math.cos(radZ) + position.x * math.sin(radZ)]
     # Get point data for rotation of the Y axis
-    p = [p[0] * math.cos(radY) - position.z * math.sin(radY), p[1] * math.cos(radX) + position.z * math.sin(radX)]
+    p = [p[0] * math.cos(radY) - position.z * math.sin(radY), p[1]]
+    # Get point data for rotation of the X axis
+    p = [p[0], p[1] * math.cos(radX) + position.z * math.sin(radX)]
     # Move point to original location
     p[0] += centerPos.x
     p[1] += centerPos.y
@@ -53,9 +56,9 @@ def multiply2d(p, multiplier):
     p.y *= multiplier.y
     return p
 
-def multiply3d(vector, multiplier):
+def multiply3d(vector, vector2):
     """Multiplies the 3d vector by another 3d vector"""
-    newVec = Vec3(vector.x * multiplier, vector.y * multiplier, vector.z * multiplier)
+    newVec = Vec3(vector.x * vector2.x, vector.y * vector2.y, vector.z * vector2.z)
     return newVec
 
 def add3d(vector, vector2):
@@ -105,7 +108,7 @@ class renderObject:
         # Set the variables for keeping space
         self.position = position
         self.rotation = rotation
-        self.scale = 1
+        self.scale = Vec3(1, 1, 1)
 
     def genPolygons(self):
         """When called it generates polygons from the points given"""
@@ -113,9 +116,9 @@ class renderObject:
         # a mesh is made out of three points
         for i in range(0, len(self.vertices), 3):
             # Get the position of all the seperate points
-            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale - self.position.z), self.position), self.rotation, self.position)
-            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale - self.position.z), self.position), self.rotation, self.position)
-            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale - self.position.z), self.position), self.rotation, self.position)
+            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale), self.position), self.rotation, self.position)
+            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation, self.position)
+            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation, self.position)
 
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
@@ -171,7 +174,7 @@ def main():
     # Generate object
     print("Generating triangle")
     tri = renderObject([Vec3(0, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1)], Vec3(320, 240, 0), Vec3(0, 0, 0))
-    tri.setScale(100)
+    tri.setScale(Vec3(100, 100, 100))
     tri.genPolygons()
     #tri.render(window)
 
@@ -185,9 +188,12 @@ def main():
         Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1), # Triangle 2 (right)
         # Right
         Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
-        Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1) # Triangle 2 (right)
+        Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 2 (right)
+        # Top
+        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, -1, -1), # Triangle 1 (left)
+        Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(1, -1, -1) # Triangle 2 (right)
     ], Vec3(320, 240, 0), Vec3(0, 0, 0))
-    square.setScale(100)
+    square.setScale(Vec3(100, 100, 100))
     square.genPolygons()
     square.render(window)
 
@@ -209,9 +215,9 @@ def main():
             square.move(Vec3(0, 0, -3))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(0, -2, 0))
+            square.rotate(Vec3(-2, -2, 0))
         if "v" in keysPressed:
-            square.rotate(Vec3(0, 2, 0))
+            square.rotate(Vec3(2, 0, 0))
 
         window.update()
         sleep(0.01)
