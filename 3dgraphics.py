@@ -7,7 +7,7 @@ from time import sleep
 # Data classes
 class Vec3:
     """Holds a position in 3d space"""
-    def __init__(self, x, y, z):
+    def __init__(self, x = 0, y = 0, z = 0):
         self.x = x
         self.y = y
         self.z = z
@@ -28,9 +28,22 @@ class Vec3:
         print("Vector: X = " + self.x + "; Y = " + self.y + "; Z = " + self.z)
 
 # Functions
-def convert3d2d(position, rotation):
+def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
     """Changes a 2d point into 3d"""
-    return Point(position.x, position.y)
+    # Convert rotation from degrees to radians
+    radX = rotation.x * 3.14 / 180
+    radY = rotation.y * 3.14 / 180
+    radZ = rotation.z * 3.14 / 180
+    # Translate point to the center
+    position.x -= centerPos.x
+    position.y -= centerPos.y
+    # Get point data
+    p = [position.x * math.cos(radZ) - position.y * math.sin(radZ), position.y * math.cos(radZ) + position.x * math.sin(radZ)]
+    # Move point to original location
+    p[0] += centerPos.x
+    p[1] += centerPos.y
+    # Return data
+    return Point(p[0], p[1])
 
 def multiply2d(p, multiplier):
     """Multiplies the point by another point"""
@@ -98,9 +111,9 @@ class renderObject:
         # a mesh is made out of three points
         for i in range(0, len(self.vertices), 3):
             # Get the position of all the seperate points
-            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale), self.position), self.rotation)
-            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation)
-            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation)
+            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale - self.position.z), self.position), self.rotation, self.position)
+            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale - self.position.z), self.position), self.rotation, self.position)
+            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale - self.position.z), self.position), self.rotation, self.position)
 
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
@@ -170,9 +183,29 @@ def main():
     square.render(window)
 
     while True:
-        square.move(Vec3(4, 4, 0))
+        keysPressed = window.window.checkKeys()
+        if "w" in keysPressed:
+            square.move(Vec3(0, -3, 0))
+        if "s" in keysPressed:
+            square.move(Vec3(0, 3, 0))
+
+        if "a" in keysPressed:
+            square.move(Vec3(-3, 0, 0))
+        if "d" in keysPressed:
+            square.move(Vec3(3, 0, 0))
+
+        if "q" in keysPressed:
+            square.move(Vec3(0, 0, 3))
+        if "e" in keysPressed:
+            square.move(Vec3(0, 0, -3))
+
+        if "c" in keysPressed:
+            square.rotate(Vec3(0, 0, -3))
+        if "v" in keysPressed:
+            square.rotate(Vec3(0, 0, 3))
+
         window.update()
-        sleep(0.1)
+        sleep(0.01)
 
     window.window.getMouse()
 
