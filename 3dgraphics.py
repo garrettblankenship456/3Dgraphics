@@ -177,8 +177,15 @@ def main():
 
     print("Generating square")
     square = renderObject([
-        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1
-        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2
+        # Front
+        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1 (left)
+        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2 (right)
+        # Left
+        Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(-1, 1, -1), # Triangle 1 (left)
+        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1), # Triangle 2 (right)
+        # Right
+        Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
+        Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1) # Triangle 2 (right)
     ], Vec3(320, 240, 0), Vec3(0, 0, 0))
     square.setScale(100)
     square.genPolygons()
