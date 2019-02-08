@@ -40,7 +40,7 @@ def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
     # Get point data for rotation of the Z axis
     p = [position.x * math.cos(radZ) - position.y * math.sin(radZ), position.y * math.cos(radZ) + position.x * math.sin(radZ)]
     # Get point data for rotation of the Y axis
-    p = [p[0] * math.cos(radY) - position.z * math.sin(radY), p[1]]
+    p = [p[0] * math.cos(radY) - position.z * math.sin(radY), p[1] * math.cos(radX) + position.z * math.sin(radX)]
     # Move point to original location
     p[0] += centerPos.x
     p[1] += centerPos.y
@@ -202,9 +202,9 @@ def main():
             square.move(Vec3(0, 0, -3))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(0, -3, 0))
+            square.rotate(Vec3(0, -2, 0))
         if "v" in keysPressed:
-            square.rotate(Vec3(0, 3, 0))
+            square.rotate(Vec3(0, 2, 0))
 
         window.update()
         sleep(0.01)
