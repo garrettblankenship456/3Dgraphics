@@ -39,12 +39,10 @@ def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
     position.x -= centerPos.x
     position.y -= centerPos.y
     position.z -= centerPos.z
-    # Clone the original position
-    originalPos = Vec3(position.x, position.y, position.z)
 
     # Rotate Z
-    position = Vec3(originalPos.x * math.cos(radZ) - originalPos.y * math.sin(radZ), # X
-                    originalPos.x * math.sin(radZ) + originalPos.y * math.cos(radZ), # Y
+    position = Vec3(position.x * math.cos(radZ) - position.y * math.sin(radZ), # X
+                    position.x * math.sin(radZ) + position.y * math.cos(radZ), # Y
                     position.z) # Z
     # Rotate Y
     position = Vec3(position.x * math.cos(radY) + position.z * math.sin(radY), # X
