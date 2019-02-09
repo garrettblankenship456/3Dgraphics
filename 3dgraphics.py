@@ -4,6 +4,10 @@ from graphics import *
 import math
 from time import sleep
 
+# TODO:
+#   Fix the draw order, Right now all the polygons are drawn in the way they were
+#   generated making the box transparent
+
 # Data classes
 class Vec3:
     """Holds a position in 3d space"""
@@ -91,11 +95,26 @@ class window3d:
     def update(self):
         """Updates all the objects by undrawing and redrawing to the window"""
         for o in self.objects:
+            # Undraw all the polygons
             for p in o.polys:
                 p.undraw()
+
+            # Update the object as a whole
             o.update()
-            for p in o.polys:
-                p.draw(self.window)
+
+            # Sort all the polygon depths and polygons
+            drawOrder = {}
+            # Loop through all the depths given, and put in the max with the polygon number
+            for i in range(len(o.polyDepths)):
+                drawOrder[i] = o.polyDepths[i]
+            drawOrder = sorted(drawOrder.items(), key=lambda kv: kv[1])
+
+            # Redraw all the polygons in order of Z greatest to least
+            for k, v in drawOrder:
+                o.polys[k].draw(self.window)
+                o.polys[k].setFill(color_rgb(round(v / 9), 0, 0))
+            #for p in o.polys:
+            #    p.draw(self.window)
 
         # Update window framebuffer
         update(120)
@@ -109,12 +128,22 @@ class window3d:
         # Add object to the internal objects array
         self.objects.append(obj)
 
+    def undrawObj(self, obj):
+        """Removes an object from the window"""
+        # Remove all polygons
+        for p in obj.polys:
+            p.undraw()
+
+        # Remove object from the internal objects array
+        self.objects.remove(obj)
+
 class renderObject:
     """Object that is renderable by the window3d class"""
     def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), vertices = None):
         # Initialize the objects variables
         self.vertices = [] # Indices are chosen via the way the points are given
         self.polys = [] # Create empty array of all the polygons
+        self.polyDepths = [] # Create empty array of all the depths for the polygons
 
         # Set the variables for keeping space
         self.position = position
@@ -140,8 +169,18 @@ class renderObject:
             p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation, self.position)
             p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation, self.position)
 
+            # Populate polygon depths (more X and Y means on the screen)
+            xyDifference = p1.getX() + p2.getX() + p3.getX() + p1.getY() + p2.getY() + p3.getY()
+            self.polyDepths.append(xyDifference)
+
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
+
+        # Color all the polygons randomly
+        l = 0
+        for p in self.polys:
+            l += 20
+            p.setFill(color_rgb(l, 0, 0))
 
     def render(self, window):
         """Draws the object to the screen"""
@@ -149,11 +188,9 @@ class renderObject:
 
     def update(self):
         """Updates the object"""
-        # Update the position of all the vertices according to the rotation
-        # Update vertices for rotation on the Z axis
-
         # Update the vertices positions
         self.polys = [] # Clear array
+        self.polyDepths = [] # Clear array
         self.genPolygons()
 
     def setScale(self, scale):
@@ -236,7 +273,7 @@ def main():
             square.move(Vec3(0, 0, -3))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(2, 2, 2))
+            square.rotate(Vec3(0, 2, 0))
         if "v" in keysPressed:
             square.rotate(Vec3(-2, -2, -2))
 
