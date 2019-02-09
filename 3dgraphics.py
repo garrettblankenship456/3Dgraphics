@@ -111,15 +111,24 @@ class window3d:
 
 class renderObject:
     """Object that is renderable by the window3d class"""
-    def __init__(self, vertices = [], position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0)):
+    def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), vertices = None):
         # Initialize the objects variables
-        self.vertices = vertices # Indices are chosen via the way the points are given
+        self.vertices = [] # Indices are chosen via the way the points are given
         self.polys = [] # Create empty array of all the polygons
 
         # Set the variables for keeping space
         self.position = position
         self.rotation = rotation
-        self.scale = Vec3(1, 1, 1)
+        self.scale = scale
+
+        # Populate vertices if none were provided
+        if vertices == None:
+            self._populateVertices()
+        else:
+            self.vertices = vertices
+
+        # Generate polygons
+        self.genPolygons()
 
     def genPolygons(self):
         """When called it generates polygons from the points given"""
@@ -171,41 +180,42 @@ class renderObject:
         """Sets the rotation of the object"""
         self.rotation = rotation
 
+    def _populateVertices(self):
+        # Generates all the vertices
+        pass # overriden by sub class
+
 class cube(renderObject):
     """A renderable cube"""
-    def __init__(self):
+    def _populateVertices(self):
         # Initialize the vertices
-        self.vertices = []
+        self.vertices = [
+            # Front
+            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2 (right)
+            # Left
+            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(-1, 1, -1), # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1), # Triangle 2 (right)
+            # Right
+            Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
+            Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 2 (right)
+            # Top
+            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, -1, -1), # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(1, -1, -1), # Triangle 2 (right)
+            # Bottom
+            Vec3(-1, 1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 1 (left)
+            Vec3(-1, 1, 1), Vec3(-1, 1, -1), Vec3(1, 1, -1), # Triangle 2 (right)
+            # Back
+            Vec3(-1, -1, -1), Vec3(-1, 1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
+            Vec3(-1, -1, -1), Vec3(1, -1, -1), Vec3(1, 1, -1) # Triangle 2 (right)
+        ]
 
 # Run the main function if this file is ran
 def main():
     print("Generating window")
     window = window3d("Test graphics", 640, 480)
 
-    # Generate object
-    print("Generating triangle")
-    tri = renderObject([Vec3(0, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1)], Vec3(320, 240, 0), Vec3(0, 0, 0))
-    tri.setScale(Vec3(100, 100, 100))
-    tri.genPolygons()
-    #tri.render(window)
-
     print("Generating square")
-    square = renderObject([
-        # Front
-        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1 (left)
-        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2 (right)
-        # Left
-        Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(-1, 1, -1), # Triangle 1 (left)
-        Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1), # Triangle 2 (right)
-        # Right
-        Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
-        Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 2 (right)
-        # Top
-        Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, -1, -1), # Triangle 1 (left)
-        Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(1, -1, -1) # Triangle 2 (right)
-    ], Vec3(320, 240, 0), Vec3(0, 0, 0))
-    square.setScale(Vec3(100, 100, 100))
-    square.genPolygons()
+    square = cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100))
     square.render(window)
 
     while True:
@@ -228,7 +238,7 @@ def main():
         if "c" in keysPressed:
             square.rotate(Vec3(2, 2, 2))
         if "v" in keysPressed:
-            square.rotate(Vec3(0, 0, -2))
+            square.rotate(Vec3(-2, -2, -2))
 
         window.update()
         sleep(0.01)
