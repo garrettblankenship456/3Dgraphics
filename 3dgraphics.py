@@ -78,6 +78,16 @@ def add3d(vector, vector2):
     newVec = Vec3(vector.x + vector2.x, vector.y + vector2.y, vector.z + vector2.z)
     return newVec
 
+def triangleArea(p1, p2, p3):
+    x1 = p1.getX()
+    y1 = p1.getY()
+    x2 = p2.getX()
+    y2 = p2.getY()
+    x3 = p3.getX()
+    y3 = p3.getY()
+    area = (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2
+    return abs(area)
+
 # Classes
 class window3d:
     """Creates a window used for 3d rendering"""
@@ -105,16 +115,19 @@ class window3d:
             # Sort all the polygon depths and polygons
             drawOrder = {}
             # Loop through all the depths given, and put in the max with the polygon number
-            for i in range(len(o.polyDepths)):
-                drawOrder[i] = o.polyDepths[i]
+            for i in range(len(o.polyAreas)):
+                drawOrder[i] = o.polyAreas[i]
             drawOrder = sorted(drawOrder.items(), key=lambda kv: kv[1])
-
+            print(drawOrder)
             # Redraw all the polygons in order of Z greatest to least
             for k, v in drawOrder:
+                r = round(v / 255)
+                if r < 0:
+                    r = 0
+
                 o.polys[k].draw(self.window)
-                o.polys[k].setFill(color_rgb(round(v / 9), 0, 0))
-            #for p in o.polys:
-            #    p.draw(self.window)
+                #o.polys[k].setFill(color_rgb(r, 0, 0))
+                o.polys[k].setFill("white")
 
         # Update window framebuffer
         update(120)
@@ -143,7 +156,7 @@ class renderObject:
         # Initialize the objects variables
         self.vertices = [] # Indices are chosen via the way the points are given
         self.polys = [] # Create empty array of all the polygons
-        self.polyDepths = [] # Create empty array of all the depths for the polygons
+        self.polyAreas = [] # Create empty array of all the depths for the polygons
 
         # Set the variables for keeping space
         self.position = position
@@ -170,8 +183,8 @@ class renderObject:
             p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation, self.position)
 
             # Populate polygon depths (more X and Y means on the screen)
-            xyDifference = p1.getX() + p2.getX() + p3.getX() + p1.getY() + p2.getY() + p3.getY()
-            self.polyDepths.append(xyDifference)
+            a = triangleArea(p1, p2, p3)
+            self.polyAreas.append(a)
 
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
@@ -190,7 +203,7 @@ class renderObject:
         """Updates the object"""
         # Update the vertices positions
         self.polys = [] # Clear array
-        self.polyDepths = [] # Clear array
+        self.polyAreas = [] # Clear array
         self.genPolygons()
 
     def setScale(self, scale):
@@ -273,7 +286,7 @@ def main():
             square.move(Vec3(0, 0, -3))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(0, 2, 0))
+            square.rotate(Vec3(2, 2, 0))
         if "v" in keysPressed:
             square.rotate(Vec3(-2, -2, -2))
 
