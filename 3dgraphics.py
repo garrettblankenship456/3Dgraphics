@@ -30,7 +30,7 @@ class Vec3:
 
 # Functions
 def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
-    """Changes a 2d point into 3d"""
+    """Changes a 3d point into 2d"""
     # Convert rotation from degrees to radians
     radX = rotation.x * 3.14 / 180
     radY = rotation.y * 3.14 / 180
@@ -38,17 +38,27 @@ def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
     # Translate point to the center
     position.x -= centerPos.x
     position.y -= centerPos.y
-    # Get point data for rotation of the Z axis
-    p = [position.x * math.cos(radZ) - position.y * math.sin(radZ), position.y * math.cos(radZ) + position.x * math.sin(radZ)]
-    # Get point data for rotation of the Y axis
-    p = [p[0] * math.cos(radY) - position.z * math.sin(radY), p[1]]
-    # Get point data for rotation of the X axis
-    p = [p[0], p[1] * math.cos(radX) + position.z * math.sin(radX)]
-    # Move point to original location
-    p[0] += centerPos.x
-    p[1] += centerPos.y
+    position.z -= centerPos.z
+    # Clone the original position
+    originalPos = Vec3(position.x, position.y, position.z)
+
+    # Rotate Z
+    position = Vec3(originalPos.x * math.cos(radZ) - originalPos.y * math.sin(radZ), # X
+                    originalPos.x * math.sin(radZ) + originalPos.y * math.cos(radZ), # Y
+                    position.z) # Z
+    # Rotate Y
+    position = Vec3(position.x * math.cos(radY) + position.z * math.sin(radY), # X
+                    position.y, # Y
+                    -position.x * math.sin(radY) + position.z * math.cos(radY)) # Z
+    # Rotate X
+    position = Vec3(position.x, # X
+                    position.y * math.cos(radX) - position.z * math.sin(radX), # Y
+                    position.y * math.sin(radX) + position.z * math.cos(radX)) # Z
+
+    # Add into point for returning
+    p = Point(position.x + centerPos.x, position.y + centerPos.y)
     # Return data
-    return Point(p[0], p[1])
+    return p
 
 def multiply2d(p, multiplier):
     """Multiplies the point by another point"""
@@ -71,7 +81,7 @@ class window3d:
     """Creates a window used for 3d rendering"""
     def __init__(self, title, x, y):
         # Initialize the objects variables
-        self.window = GraphWin(title, x, y)
+        self.window = GraphWin(title, x, y, autoflush=False)
         self.window.setBackground("white")
         self.title = title
         self.xSize = x
@@ -88,6 +98,9 @@ class window3d:
             o.update()
             for p in o.polys:
                 p.draw(self.window)
+
+        # Update window framebuffer
+        update(120)
 
     def drawObj(self, obj):
         """Adds an object to draw into the objects array"""
@@ -215,9 +228,9 @@ def main():
             square.move(Vec3(0, 0, -3))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(-2, -2, 0))
+            square.rotate(Vec3(2, 2, 2))
         if "v" in keysPressed:
-            square.rotate(Vec3(2, 0, 0))
+            square.rotate(Vec3(0, 0, -2))
 
         window.update()
         sleep(0.01)
