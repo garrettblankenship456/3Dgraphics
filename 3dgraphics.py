@@ -33,8 +33,8 @@ class Vec3:
         return ""
 
 # Functions
-def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
-    """Changes a 3d point into 2d"""
+def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
+    """Rotates a 3d point around the center position"""
     # Convert rotation from degrees to radians
     radX = rotation.x * 3.14 / 180
     radY = rotation.y * 3.14 / 180
@@ -57,8 +57,21 @@ def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
                     position.y * math.cos(radX) - position.z * math.sin(radX), # Y
                     position.y * math.sin(radX) + position.z * math.cos(radX)) # Z
 
+    # Translate point into original position
+    position.x += centerPos.x
+    position.y += centerPos.y
+    position.z += centerPos.z
+
+    # Return data
+    return position
+
+def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
+    """Changes a 3d point into 2d"""
+    # Rotate the point based on rotation
+    position = rotate3d(position, rotation, centerPos)
+
     # Add into point for returning
-    p = Point(position.x + centerPos.x, position.y + centerPos.y)
+    p = Point(position.x, position.y)
     # Return data
     return p
 
@@ -78,15 +91,10 @@ def add3d(vector, vector2):
     newVec = Vec3(vector.x + vector2.x, vector.y + vector2.y, vector.z + vector2.z)
     return newVec
 
-def triangleArea(p1, p2, p3):
-    x1 = p1.getX()
-    y1 = p1.getY()
-    x2 = p2.getX()
-    y2 = p2.getY()
-    x3 = p3.getX()
-    y3 = p3.getY()
-    area = (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2
-    return abs(area)
+def getZDepth(point, rotation, center):
+    """Gets the Z value of a point"""
+    point = rotate3d(point, rotation, center)
+    return point.z
 
 # Classes
 class window3d:
@@ -117,17 +125,13 @@ class window3d:
             # Loop through all the depths given, and put in the max with the polygon number
             for i in range(len(o.polyAreas)):
                 drawOrder[i] = o.polyAreas[i]
-            drawOrder = sorted(drawOrder.items(), key=lambda kv: kv[1])
-            print(drawOrder)
+            drawOrder = sorted(drawOrder.items(), key=lambda kv: kv[1], reverse=True)
+
             # Redraw all the polygons in order of Z greatest to least
             for k, v in drawOrder:
-                r = round(v / 255)
-                if r < 0:
-                    r = 0
-
                 o.polys[k].draw(self.window)
                 #o.polys[k].setFill(color_rgb(r, 0, 0))
-                o.polys[k].setFill("white")
+                o.polys[k].setFill("red")
 
         # Update window framebuffer
         update(120)
@@ -178,13 +182,18 @@ class renderObject:
         # a mesh is made out of three points
         for i in range(0, len(self.vertices), 3):
             # Get the position of all the seperate points
+            v1 = add3d(multiply3d(self.vertices[i], self.scale), self.position)
+            v2 = add3d(multiply3d(self.vertices[i + 1], self.scale), self.position)
+            v3 = add3d(multiply3d(self.vertices[i + 2], self.scale), self.position)
+
             p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale), self.position), self.rotation, self.position)
             p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation, self.position)
             p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation, self.position)
 
+            # Get the lowest point
+            zDepths = [getZDepth(v1, self.rotation, self.position), getZDepth(v2, self.rotation, self.position), getZDepth(v3, self.rotation, self.position)]
             # Populate polygon depths (more X and Y means on the screen)
-            a = triangleArea(p1, p2, p3)
-            self.polyAreas.append(a)
+            self.polyAreas.append(max(zDepths))
 
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
