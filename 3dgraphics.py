@@ -5,8 +5,9 @@ import math
 from time import sleep
 
 # TODO:
-#   Fix the draw order, Right now all the polygons are drawn in the way they were
-#   generated making the box transparent
+#   Add lighting
+#   Make it so when a point is farther back X and Y are reduced to give more
+#       of a 3d look to the object
 
 # Data classes
 class Vec3:
