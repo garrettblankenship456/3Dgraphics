@@ -8,6 +8,8 @@ from time import sleep
 #   Add lighting
 #   Make it so when a point is farther back X and Y are reduced to give more
 #       of a 3d look to the object
+#   Convert coordinate type
+#   Use matrices instead of standard math
 
 # Data classes
 class Vec3:
@@ -130,9 +132,12 @@ class window3d:
 
             # Redraw all the polygons in order of Z greatest to least
             for k, v in drawOrder:
+                # Create color
+                c = o.color
+
+                # Draw polygon
                 o.polys[k].draw(self.window)
-                #o.polys[k].setFill(color_rgb(r, 0, 0))
-                o.polys[k].setFill("red")
+                o.polys[k].setFill(c)
 
         # Update window framebuffer
         update(120)
@@ -157,7 +162,7 @@ class window3d:
 
 class renderObject:
     """Object that is renderable by the window3d class"""
-    def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), vertices = None):
+    def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), color = color_rgb(255, 255, 255), vertices = None):
         # Initialize the objects variables
         self.vertices = [] # Indices are chosen via the way the points are given
         self.polys = [] # Create empty array of all the polygons
@@ -167,6 +172,7 @@ class renderObject:
         self.position = position
         self.rotation = rotation
         self.scale = scale
+        self.color = color
 
         # Populate vertices if none were provided
         if vertices == None:
@@ -269,19 +275,36 @@ class cube(renderObject):
             Vec3(-1, -1, -1), Vec3(1, -1, -1), Vec3(1, 1, -1) # Triangle 2 (right)
         ]
 
+class light:
+    def __init__(self, position, intensity, radius):
+        # Initialize variables
+        self.position = position
+        self.intensity = intensity
+        self.radius = radius
+
+class camera:
+    def __init__(self, position, rotation, fov):
+        # Initialize variables
+        self.position = position
+        self.rotation = rotation
+        self.fov = fov
+
 # Run the main function if this file is ran
 def main():
     print("Generating window")
     window = window3d("Test graphics", 640, 480)
 
+    #print("Generating light")
+    #l = light(Vec3())
+
     print("Generating square")
-    square = cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100))
+    square = cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), color_rgb(255, 0, 0))
     square.render(window)
 
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            square.move(Vec3(0, -3, 0))
+            square.move(Vec3(0, -3, 3))
         if "s" in keysPressed:
             square.move(Vec3(0, 3, 0))
 
