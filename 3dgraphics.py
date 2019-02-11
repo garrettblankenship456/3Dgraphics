@@ -100,7 +100,7 @@ def getZDepth(point, rotation, center):
     return point.z
 
 # Classes
-class window3d:
+class Window3d:
     """Creates a window used for 3d rendering"""
     def __init__(self, title, x, y):
         # Initialize the objects variables
@@ -160,7 +160,7 @@ class window3d:
         # Remove object from the internal objects array
         self.objects.remove(obj)
 
-class renderObject:
+class RenderObject:
     """Object that is renderable by the window3d class"""
     def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), color = color_rgb(255, 255, 255), vertices = None):
         # Initialize the objects variables
@@ -250,7 +250,7 @@ class renderObject:
         # Generates all the vertices
         pass # overriden by sub class
 
-class cube(renderObject):
+class Cube(RenderObject):
     """A renderable cube"""
     def _populateVertices(self):
         # Initialize the vertices
@@ -275,14 +275,14 @@ class cube(renderObject):
             Vec3(-1, -1, -1), Vec3(1, -1, -1), Vec3(1, 1, -1) # Triangle 2 (right)
         ]
 
-class light:
+class Light:
     def __init__(self, position, intensity, radius):
         # Initialize variables
         self.position = position
         self.intensity = intensity
         self.radius = radius
 
-class camera:
+class Camera:
     def __init__(self, position, rotation, fov):
         # Initialize variables
         self.position = position
@@ -292,13 +292,13 @@ class camera:
 # Run the main function if this file is ran
 def main():
     print("Generating window")
-    window = window3d("Test graphics", 640, 480)
+    window = Window3d("Test graphics", 640, 480)
 
     #print("Generating light")
-    #l = light(Vec3())
+    #l = Light(Vec3())
 
     print("Generating square")
-    square = cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), color_rgb(255, 0, 0))
+    square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), color_rgb(255, 0, 0))
     square.render(window)
 
     while True:
