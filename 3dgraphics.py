@@ -35,6 +35,32 @@ class Vec3:
         print("Vector: X =", self.x, " Y =", self.y, " Z = ", self.z)
         return ""
 
+class Color:
+    """Holds color data"""
+    def __init__(self, r = 0, g = 0, b = 0):
+        self.r = r
+        self.g = g
+        self.b = b
+
+    def getColorRGB(self, multiplier):
+        r = int(self.r * multiplier)
+        g = int(self.g * multiplier)
+        b = int(self.b * multiplier)
+        if r > 255:
+            r = 255
+        elif r < 0:
+            r = 0
+        if g > 255:
+            g = 255
+        elif g < 0:
+            g = 0
+        if b > 255:
+            b = 255
+        elif b < 0:
+            b = 0
+
+        return color_rgb(r, g, b)
+
 # Functions
 def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
     """Rotates a 3d point around the center position"""
@@ -109,6 +135,7 @@ class Window3d:
         self.title = title
         self.xSize = x
         self.ySize = y
+        self.ambient = 0.2 # The amount of light if no light is present
 
         # Initialize array for holding all the objects being drawn
         self.objects = []
@@ -134,6 +161,12 @@ class Window3d:
             for k, v in drawOrder:
                 # Create color
                 c = o.color
+
+                # Calculate light factor for the polygon
+                lightFactor = v + self.ambient
+
+                # Turn c into color_rgb
+                c = c.getColorRGB(lightFactor)
 
                 # Draw polygon
                 o.polys[k].draw(self.window)
@@ -298,7 +331,7 @@ def main():
     #l = Light(Vec3())
 
     print("Generating square")
-    square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), color_rgb(255, 0, 0))
+    square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
     square.render(window)
 
     while True:
