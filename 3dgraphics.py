@@ -43,9 +43,9 @@ class Color:
         self.b = b
 
     def getColorRGB(self, multiplier):
-        r = int(self.r * multiplier)
-        g = int(self.g * multiplier)
-        b = int(self.b * multiplier)
+        r = int(self.r - multiplier)
+        g = int(self.g - multiplier)
+        b = int(self.b - multiplier)
         if r > 255:
             r = 255
         elif r < 0:
@@ -171,6 +171,7 @@ class Window3d:
                 # Draw polygon
                 o.polys[k].draw(self.window)
                 o.polys[k].setFill(c)
+                o.polys[k].setOutline(c)
 
         # Update window framebuffer
         update(120)
