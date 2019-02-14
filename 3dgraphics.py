@@ -5,11 +5,9 @@ import math
 from time import sleep
 
 # TODO:
-#   Add lighting
+#   Add obj file importer
 #   Make it so when a point is farther back X and Y are reduced to give more
 #       of a 3d look to the object
-#   Convert coordinate type
-#   Use matrices instead of standard math
 
 # Data classes
 class Vec3:
@@ -125,6 +123,15 @@ def getZDepth(point, rotation, center):
     point = rotate3d(point, rotation, center)
     return point.z
 
+def distance3d(v1, v2):
+    """Gets the distance between two 3d vectors"""
+    dx = v2.x - v1.x
+    dy = v2.y - v1.y
+    dz = v2.z - v1.z
+    distance = math.hypot(dx, dy)
+    distance = math.hypot(distance, dz)
+    return distance
+
 # Classes
 class Window3d:
     """Creates a window used for 3d rendering"""
@@ -162,7 +169,7 @@ class Window3d:
                 # Create color
                 c = o.color
 
-                # Calculate light factor for the polygon
+                # Calculate light factor for the polygon by each light
                 lightFactor = v + self.ambient
 
                 # Turn c into color_rgb
@@ -327,9 +334,6 @@ class Camera:
 def main():
     print("Generating window")
     window = Window3d("Test graphics", 640, 480)
-
-    #print("Generating light")
-    #l = Light(Vec3())
 
     print("Generating square")
     square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
