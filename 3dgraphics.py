@@ -127,9 +127,7 @@ def distance3d(v1, v2):
     """Gets the distance between two 3d vectors"""
     dx = v2.x - v1.x
     dy = v2.y - v1.y
-    dz = v2.z - v1.z
     distance = math.hypot(dx, dy)
-    distance = math.hypot(distance, dz)
     return distance
 
 # Classes
@@ -146,6 +144,7 @@ class Window3d:
 
         # Initialize array for holding all the objects being drawn
         self.objects = []
+        self.lights = [] # Hold all the lights
 
     def update(self):
         """Updates all the objects by undrawing and redrawing to the window"""
@@ -170,7 +169,9 @@ class Window3d:
                 c = o.color
 
                 # Calculate light factor for the polygon by each light
-                lightFactor = v + self.ambient
+                for l in self.lights:
+                    lightFactor = ((distance3d(Vec3(o.polys[k].getPoints()[0].getX(), o.polys[k].getPoints()[0].getY(), v), l.position) + self.ambient) / l.radius) * l.intensity
+                    print(lightFactor)
 
                 # Turn c into color_rgb
                 c = c.getColorRGB(lightFactor)
@@ -200,6 +201,10 @@ class Window3d:
 
         # Remove object from the internal objects array
         self.objects.remove(obj)
+
+    def addLight(self, light):
+        """Adds a light into the scene"""
+        self.lights.append(light)
 
 class RenderObject:
     """Object that is renderable by the window3d class"""
@@ -334,6 +339,10 @@ class Camera:
 def main():
     print("Generating window")
     window = Window3d("Test graphics", 640, 480)
+
+    print("Generating lights")
+    l = Light(Vec3(400, 0, 200), 1, 10)
+    window.addLight(l)
 
     print("Generating square")
     square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
