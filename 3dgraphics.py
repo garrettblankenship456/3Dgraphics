@@ -249,15 +249,15 @@ class RenderObject:
             v2 = add3d(multiply3d(self.vertices[i + 1], self.scale), self.position)
             v3 = add3d(multiply3d(self.vertices[i + 2], self.scale), self.position)
 
+            v1 = rotate3d(v1, self.rotation, self.position)
+            v2 = rotate3d(v2, self.rotation, self.position)
+            v3 = rotate3d(v3, self.rotation, self.position)
+
             # Rotate points if the camera is rotated
             if camera != None:
                 v1 = rotate3d(v1, camera.rotation, camera.position)
                 v2 = rotate3d(v2, camera.rotation, camera.position)
                 v3 = rotate3d(v3, camera.rotation, camera.position)
-
-            v1 = rotate3d(v1, self.rotation, self.position)
-            v2 = rotate3d(v2, self.rotation, self.position)
-            v3 = rotate3d(v3, self.rotation, self.position)
 
             p1 = convert3d2d(v1)
             p2 = convert3d2d(v2)
@@ -362,7 +362,7 @@ def main():
 
     print("Generating camera")
     cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 0), 70)
-    window.addCamera(cam)
+    #window.addCamera(cam)
 
     print("Generating light")
     l = Light(Vec3(320, 0, 0), 1, 10)
@@ -381,18 +381,18 @@ def main():
         if "w" in keysPressed:
             #square.move(Vec3(0, -3, 3))
             #l.position.x += 10
-            cam.position.z -= 2
+            cam.position.z -= 10
         if "s" in keysPressed:
             #square.move(Vec3(0, 3, 0))
             #l.position.x -= 10
-            cam.position.z += 2
+            cam.position.z += 10
 
         if "a" in keysPressed:
             #square.move(Vec3(-3, 0, 0))
-            cam.rotation.y -= 2
+            cam.rotation.y += 2
         if "d" in keysPressed:
             #square.move(Vec3(3, 0, 0))
-            cam.rotation.y += 2
+            cam.rotation.y -= 2
 
         if "q" in keysPressed:
             square.move(Vec3(0, 0, 3))
@@ -403,6 +403,10 @@ def main():
             square.rotate(Vec3(2, 2, 0))
         if "v" in keysPressed:
             square.rotate(Vec3(-2, -2, -2))
+
+        if "Escape" in keysPressed:
+            print("Exitting")
+            break
 
         window.update()
         sleep(0.01)
