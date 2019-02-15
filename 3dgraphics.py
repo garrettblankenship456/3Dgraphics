@@ -185,7 +185,11 @@ class Window3d:
                 # Draw polygon
                 o.polys[k].draw(self.window)
                 o.polys[k].setFill(c)
-                o.polys[k].setOutline(c)
+
+                if o.wireframe == False:
+                    o.polys[k].setOutline(c)
+                else:
+                    o.polys[k].setOutline("black")
 
         # Update window framebuffer
         update(120)
@@ -229,6 +233,7 @@ class RenderObject:
         self.rotation = rotation
         self.scale = scale
         self.color = color
+        self.wireframe = False
 
         # Populate vertices if none were provided
         if vertices == None:
@@ -249,19 +254,20 @@ class RenderObject:
             v2 = add3d(multiply3d(self.vertices[i + 1], self.scale), self.position)
             v3 = add3d(multiply3d(self.vertices[i + 2], self.scale), self.position)
 
-            v1 = rotate3d(v1, self.rotation, self.position)
-            v2 = rotate3d(v2, self.rotation, self.position)
-            v3 = rotate3d(v3, self.rotation, self.position)
+            # Rotate after
+            vr1 = rotate3d(v1, self.rotation, self.position)
+            vr2 = rotate3d(v2, self.rotation, self.position)
+            vr3 = rotate3d(v3, self.rotation, self.position)
 
             # Rotate points if the camera is rotated
             if camera != None:
-                v1 = rotate3d(v1, camera.rotation, camera.position)
-                v2 = rotate3d(v2, camera.rotation, camera.position)
-                v3 = rotate3d(v3, camera.rotation, camera.position)
+                vr1 = rotate3d(v1, camera.rotation, camera.position)
+                vr2 = rotate3d(v2, camera.rotation, camera.position)
+                vr3 = rotate3d(v3, camera.rotation, camera.position)
 
-            p1 = convert3d2d(v1)
-            p2 = convert3d2d(v2)
-            p3 = convert3d2d(v3)
+            p1 = convert3d2d(vr1)
+            p2 = convert3d2d(vr2)
+            p3 = convert3d2d(vr3)
 
             # Get the lowest point
             zDepths = [getZDepth(v1, self.rotation, self.position), getZDepth(v2, self.rotation, self.position), getZDepth(v3, self.rotation, self.position)]
@@ -365,7 +371,7 @@ def main():
     #window.addCamera(cam)
 
     print("Generating light")
-    l = Light(Vec3(320, 0, 0), 1, 10)
+    l = Light(Vec3(320, 100, 100), 1, 10)
     window.addLight(l)
 
     print("Generating square")
