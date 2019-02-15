@@ -40,10 +40,10 @@ class Color:
         self.g = g
         self.b = b
 
-    def getColorRGB(self, multiplier):
-        r = int(self.r - multiplier)
-        g = int(self.g - multiplier)
-        b = int(self.b - multiplier)
+    def getColorRGB(self, multiplier, ambientLight):
+        r = int(self.r - multiplier) + ambientLight
+        g = int(self.g - multiplier) + ambientLight
+        b = int(self.b - multiplier) + ambientLight
         if r > 255:
             r = 255
         elif r < 0:
@@ -92,11 +92,8 @@ def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
     # Return data
     return position
 
-def convert3d2d(position, rotation, centerPos = Vec3(0, 0, 0)):
+def convert3d2d(position):
     """Changes a 3d point into 2d"""
-    # Rotate the point based on rotation
-    position = rotate3d(position, rotation, centerPos)
-
     # Add into point for returning
     p = Point(position.x, position.y)
     # Return data
@@ -127,8 +124,16 @@ def distance3d(v1, v2):
     """Gets the distance between two 3d vectors"""
     dx = v2.x - v1.x
     dy = v2.y - v1.y
+    dz = v2.z - v1.z
     distance = math.hypot(dx, dy)
+    distance = math.hypot(distance, dz)
     return distance
+
+def distance2d(p1, p2):
+    """Gets the distance between two 2d vectors"""
+    dx = p2.getX() - p1.getX()
+    dy = p2.getY() - p1.getY()
+    return Point(dx, dy)
 
 # Classes
 class Window3d:
@@ -140,7 +145,8 @@ class Window3d:
         self.title = title
         self.xSize = x
         self.ySize = y
-        self.ambient = 0.2 # The amount of light if no light is present
+        self.ambient = 10 # The amount of light if no light is present
+        self.camera = None # Holds the data for the camera
 
         # Initialize array for holding all the objects being drawn
         self.objects = []
@@ -154,7 +160,7 @@ class Window3d:
                 p.undraw()
 
             # Update the object as a whole
-            o.update()
+            o.update(self.camera)
 
             # Sort all the polygon depths and polygons
             drawOrder = {}
@@ -169,12 +175,12 @@ class Window3d:
                 c = o.color
 
                 # Calculate light factor for the polygon by each light
+                lightFactor = 0
                 for l in self.lights:
-                    lightFactor = ((distance3d(Vec3(o.polys[k].getPoints()[0].getX(), o.polys[k].getPoints()[0].getY(), v), l.position) + self.ambient) / l.radius) * l.intensity
-                    print(lightFactor)
+                    lightFactor = ((distance3d(Vec3(o.polys[k].getPoints()[0].getX(), o.polys[k].getPoints()[0].getY(), v), l.position) / l.radius) * l.intensity)
 
                 # Turn c into color_rgb
-                c = c.getColorRGB(lightFactor)
+                c = c.getColorRGB(lightFactor, self.ambient)
 
                 # Draw polygon
                 o.polys[k].draw(self.window)
@@ -206,6 +212,10 @@ class Window3d:
         """Adds a light into the scene"""
         self.lights.append(light)
 
+    def addCamera(self, camera):
+        """Adds a camera into the scene"""
+        self.camera = camera
+
 class RenderObject:
     """Object that is renderable by the window3d class"""
     def __init__(self, position = Vec3(0, 0, 0), rotation = Vec3(0, 0, 0), scale = Vec3(1, 1, 1), color = color_rgb(255, 255, 255), vertices = None):
@@ -229,7 +239,7 @@ class RenderObject:
         # Generate polygons
         self.genPolygons()
 
-    def genPolygons(self):
+    def genPolygons(self, camera = None):
         """When called it generates polygons from the points given"""
         # Count by threes because a triangle has three points and
         # a mesh is made out of three points
@@ -239,9 +249,19 @@ class RenderObject:
             v2 = add3d(multiply3d(self.vertices[i + 1], self.scale), self.position)
             v3 = add3d(multiply3d(self.vertices[i + 2], self.scale), self.position)
 
-            p1 = convert3d2d(add3d(multiply3d(self.vertices[i], self.scale), self.position), self.rotation, self.position)
-            p2 = convert3d2d(add3d(multiply3d(self.vertices[i + 1], self.scale), self.position), self.rotation, self.position)
-            p3 = convert3d2d(add3d(multiply3d(self.vertices[i + 2], self.scale), self.position), self.rotation, self.position)
+            # Rotate points if the camera is rotated
+            if camera != None:
+                v1 = rotate3d(v1, camera.rotation, camera.position)
+                v2 = rotate3d(v2, camera.rotation, camera.position)
+                v3 = rotate3d(v3, camera.rotation, camera.position)
+
+            v1 = rotate3d(v1, self.rotation, self.position)
+            v2 = rotate3d(v2, self.rotation, self.position)
+            v3 = rotate3d(v3, self.rotation, self.position)
+
+            p1 = convert3d2d(v1)
+            p2 = convert3d2d(v2)
+            p3 = convert3d2d(v3)
 
             # Get the lowest point
             zDepths = [getZDepth(v1, self.rotation, self.position), getZDepth(v2, self.rotation, self.position), getZDepth(v3, self.rotation, self.position)]
@@ -261,12 +281,12 @@ class RenderObject:
         """Draws the object to the screen"""
         window.drawObj(self)
 
-    def update(self):
+    def update(self, camera):
         """Updates the object"""
         # Update the vertices positions
         self.polys = [] # Clear array
         self.polyAreas = [] # Clear array
-        self.genPolygons()
+        self.genPolygons(camera)
 
     def setScale(self, scale):
         """Sets the scale of the vertices"""
@@ -340,25 +360,39 @@ def main():
     print("Generating window")
     window = Window3d("Test graphics", 640, 480)
 
-    print("Generating lights")
-    l = Light(Vec3(400, 0, 200), 1, 10)
+    print("Generating camera")
+    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 0), 70)
+    window.addCamera(cam)
+
+    print("Generating light")
+    l = Light(Vec3(320, 0, 0), 1, 10)
     window.addLight(l)
 
     print("Generating square")
     square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
     square.render(window)
 
+    print("Generating platform")
+    platform = Cube(Vec3(0, 400, 0), Vec3(1, 1, 0), Vec3(400, 10, 800), Color(0, 255, 0))
+    platform.render(window)
+
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            square.move(Vec3(0, -3, 3))
+            #square.move(Vec3(0, -3, 3))
+            #l.position.x += 10
+            cam.position.z -= 2
         if "s" in keysPressed:
-            square.move(Vec3(0, 3, 0))
+            #square.move(Vec3(0, 3, 0))
+            #l.position.x -= 10
+            cam.position.z += 2
 
         if "a" in keysPressed:
-            square.move(Vec3(-3, 0, 0))
+            #square.move(Vec3(-3, 0, 0))
+            cam.rotation.y -= 2
         if "d" in keysPressed:
-            square.move(Vec3(3, 0, 0))
+            #square.move(Vec3(3, 0, 0))
+            cam.rotation.y += 2
 
         if "q" in keysPressed:
             square.move(Vec3(0, 0, 3))
@@ -373,7 +407,7 @@ def main():
         window.update()
         sleep(0.01)
 
-    window.window.getMouse()
+    #window.window.getMouse()
 
 
 if __name__ == "__main__":
