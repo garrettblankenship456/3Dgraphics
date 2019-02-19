@@ -5,7 +5,7 @@ import math
 from time import sleep
 
 # TODO:
-#   Add obj file importer
+#   Add obj file importer (working on it)
 #   Make it so when a point is farther back X and Y are reduced to give more
 #       of a 3d look to the object
 
@@ -134,6 +134,49 @@ def distance2d(p1, p2):
     dx = p2.getX() - p1.getX()
     dy = p2.getY() - p1.getY()
     return Point(dx, dy)
+
+def loadObj(path):
+    """Loads an OBJ file into vertices"""
+    f = open(path, "r")
+
+    # t_ is for temporary
+    t_vertices = []
+    t_indices = []
+
+    # Read file line by name and import vertices
+    line = f.readline()
+    while line != None:
+        # Parse data
+        lineSplit = line.split(" ")
+        if len(lineSplit) > 0 and lineSplit[0] == "v":
+            # Its a vertex
+            t_vertices.append(Vec3(float(lineSplit[1]), float(lineSplit[2]), float(lineSplit[3])))
+        # Parse faces
+        if len(lineSplit) > 0 and lineSplit[0] == "f":
+            # Its a face, which holds indices
+            splitFace1 = lineSplit[1].split("/")
+            splitFace2 = lineSplit[1].split("/")
+            splitFace3 = lineSplit[1].split("/")
+
+            t_indices.append(int(splitFace1[0]))
+            t_indices.append(int(splitFace2[0]))
+            t_indices.append(int(splitFace3[0]))
+
+        # Exit if none
+        if line == "" or line == None:
+            break
+
+        # Read next line
+        line = f.readline()
+
+    # Reindex the vertices
+    vOut = []
+    for i in t_indices:
+        vOut.append(t_vertices[i - 1])
+
+    # Cleanup and returning data
+    f.close()
+    return vOut
 
 # Classes
 class Window3d:
@@ -375,7 +418,10 @@ def main():
     window.addLight(l)
 
     print("Generating square")
-    square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    #square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    # Create square from cube obj
+    v = loadObj("models/cube.obj")
+    square = RenderObject(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0), v)
     square.render(window)
 
     print("Generating platform")
