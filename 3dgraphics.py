@@ -5,9 +5,10 @@ import math
 from time import sleep
 
 # TODO:
-#   Add obj file importer (working on it)
 #   Make it so when a point is farther back X and Y are reduced to give more
 #       of a 3d look to the object
+#   Make the entire object 3d points and have the renderer use a view and perspective
+#       matrix to give the get the points for 3d
 
 # Data classes
 class Vec3:
@@ -155,12 +156,12 @@ def loadObj(path):
         if len(lineSplit) > 0 and lineSplit[0] == "f":
             # Its a face, which holds indices
             splitFace1 = lineSplit[1].split("/")
-            splitFace2 = lineSplit[1].split("/")
-            splitFace3 = lineSplit[1].split("/")
+            splitFace2 = lineSplit[2].split("/")
+            splitFace3 = lineSplit[3].split("/")
 
-            t_indices.append(int(splitFace1[0]))
-            t_indices.append(int(splitFace2[0]))
-            t_indices.append(int(splitFace3[0]))
+            t_indices.append(int(splitFace1[0].rstrip()))
+            t_indices.append(int(splitFace2[0].rstrip()))
+            t_indices.append(int(splitFace3[0].rstrip()))
 
         # Exit if none
         if line == "" or line == None:
@@ -188,7 +189,7 @@ class Window3d:
         self.title = title
         self.xSize = x
         self.ySize = y
-        self.ambient = 10 # The amount of light if no light is present
+        self.ambient = 1 # The amount of light if no light is present
         self.camera = None # Holds the data for the camera
 
         # Initialize array for holding all the objects being drawn
@@ -371,24 +372,50 @@ class Cube(RenderObject):
         # Initialize the vertices
         self.vertices = [
             # Front
-            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1), # Triangle 1 (left)
-            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1), # Triangle 2 (right)
+            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(1, 1, 1),  # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, 1, 1),  # Triangle 2 (right)
             # Left
-            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(-1, 1, -1), # Triangle 1 (left)
-            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1), # Triangle 2 (right)
+            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(-1, 1, -1),  # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(-1, 1, 1), Vec3(-1, 1, -1),  # Triangle 2 (right)
             # Right
-            Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
-            Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 2 (right)
+            Vec3(1, -1, 1), Vec3(1, -1, -1), Vec3(1, 1, -1),  # Triangle 1 (left)
+            Vec3(1, -1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1),  # Triangle 2 (right)
             # Top
-            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, -1, -1), # Triangle 1 (left)
-            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(1, -1, -1), # Triangle 2 (right)
+            Vec3(-1, -1, 1), Vec3(1, -1, 1), Vec3(1, -1, -1),  # Triangle 1 (left)
+            Vec3(-1, -1, 1), Vec3(-1, -1, -1), Vec3(1, -1, -1),  # Triangle 2 (right)
             # Bottom
-            Vec3(-1, 1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1), # Triangle 1 (left)
-            Vec3(-1, 1, 1), Vec3(-1, 1, -1), Vec3(1, 1, -1), # Triangle 2 (right)
+            Vec3(-1, 1, 1), Vec3(1, 1, 1), Vec3(1, 1, -1),  # Triangle 1 (left)
+            Vec3(-1, 1, 1), Vec3(-1, 1, -1), Vec3(1, 1, -1),  # Triangle 2 (right)
             # Back
-            Vec3(-1, -1, -1), Vec3(-1, 1, -1), Vec3(1, 1, -1), # Triangle 1 (left)
-            Vec3(-1, -1, -1), Vec3(1, -1, -1), Vec3(1, 1, -1) # Triangle 2 (right)
+            Vec3(-1, -1, -1), Vec3(-1, 1, -1), Vec3(1, 1, -1),  # Triangle 1 (left)
+            Vec3(-1, -1, -1), Vec3(1, -1, -1), Vec3(1, 1, -1)  # Triangle 2 (right)
         ]
+
+class Model(RenderObject):
+    """A renderable object by .obj files"""
+    def __init__(self, path, position=Vec3(0, 0, 0), rotation=Vec3(0, 0, 0), scale=Vec3(1, 1, 1), color=color_rgb(255, 255, 255)):
+        # Initialize the objects variables
+        self.vertices = []  # Indices are chosen via the way the points are given
+        self.polys = []  # Create empty array of all the polygons
+        self.polyAreas = []  # Create empty array of all the depths for the polygons
+
+        # Set the variables for keeping space
+        self.position = position
+        self.rotation = rotation
+        self.scale = scale
+        self.color = color
+        self.wireframe = False
+
+        # Populate vertices with the read file
+        self.path = path
+        self._populateVertices()
+
+        # Generate polygons
+        self.genPolygons()
+
+    def _populateVertices(self):
+        # Initialize the vertices
+        self.vertices = loadObj(self.path)
 
 class Light:
     def __init__(self, position, intensity, radius):
@@ -414,47 +441,34 @@ def main():
     #window.addCamera(cam)
 
     print("Generating light")
-    l = Light(Vec3(320, 100, 100), 1, 10)
+    l = Light(Vec3(320, 100, 100), 1, 2)
     window.addLight(l)
 
-    print("Generating square")
-    #square = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
-    # Create square from cube obj
-    v = loadObj("models/cube.obj")
-    square = RenderObject(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0), v)
-    square.render(window)
-
-    print("Generating platform")
-    platform = Cube(Vec3(0, 400, 0), Vec3(1, 1, 0), Vec3(400, 10, 800), Color(0, 255, 0))
-    platform.render(window)
+    print("Generating model")
+    mdl = Model("models/cube.obj", Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    mdl.render(window)
 
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            #square.move(Vec3(0, -3, 3))
-            #l.position.x += 10
-            cam.position.z -= 10
+            mdl.rotate(Vec3(2, 0, 0))
         if "s" in keysPressed:
-            #square.move(Vec3(0, 3, 0))
-            #l.position.x -= 10
-            cam.position.z += 10
+            mdl.rotate(Vec3(-2, 0, 0))
 
         if "a" in keysPressed:
-            #square.move(Vec3(-3, 0, 0))
-            cam.rotation.y += 2
+            mdl.rotate(Vec3(0, 2, 0))
         if "d" in keysPressed:
-            #square.move(Vec3(3, 0, 0))
-            cam.rotation.y -= 2
+            mdl.rotate(Vec3(0, -2, 0))
 
         if "q" in keysPressed:
-            square.move(Vec3(0, 0, 3))
+            mdl.rotate(Vec3(0, 0, 2))
         if "e" in keysPressed:
-            square.move(Vec3(0, 0, -3))
+            mdl.rotate(Vec3(0, 0, -2))
 
         if "c" in keysPressed:
-            square.rotate(Vec3(2, 2, 0))
+            mdl.setScale(add3d(Vec3(2, 2, 2), mdl.scale))
         if "v" in keysPressed:
-            square.rotate(Vec3(-2, -2, -2))
+            mdl.setScale(add3d(Vec3(-2, -2, -2), mdl.scale))
 
         if "Escape" in keysPressed:
             print("Exitting")
