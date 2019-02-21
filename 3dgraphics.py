@@ -60,6 +60,45 @@ class Color:
 
         return color_rgb(r, g, b)
 
+class Mat4:
+    """A 4x4 matrix"""
+    def __init__(self, matrix = [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]]):
+        # Initialize variables
+        self.matrix = matrix
+
+    def __str__(self):
+        info = "4x4 Matrix: \n"
+        info += "   1: " + str(self.matrix[0]) + "\n"
+        info += "   2: " + str(self.matrix[1]) + "\n"
+        info += "   3: " + str(self.matrix[2]) + "\n"
+        info += "   4: " + str(self.matrix[3]) + "\n"
+        return info
+
+    def __getitem__(self, item):
+        # Returns the item from the position in the matrix
+        return self.matrix[item]
+
+    def __len__(self):
+        # Returns the length of the matrix
+        return len(self.matrix)
+
+    def multiply4x4(self, matrix):
+        """Multiplies this matrix by the one provided"""
+        result = [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]]
+        for i in range(len(self.matrix)):
+            for j in range(len(matrix[0])):
+                for k in range(len(matrix)):
+                    result[i][j] += self.matrix[i][k] * matrix[k][j]
+
+        return Mat4(result)
+
+    def multiplyVec(self, vector):
+        """Multiplies this matrix by the vector provided"""
+        result = [[vector.x, vector.y, vector.z, 1]]
+        result = self.multiply4x4(result)
+        result = Vec3(result[0][0], result[0][1], result[0][2])
+        return result
+
 # Functions
 def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
     """Rotates a 3d point around the center position"""
@@ -221,7 +260,7 @@ class Window3d:
                 # Calculate light factor for the polygon by each light
                 lightFactor = 0
                 for l in self.lights:
-                    lightFactor = ((distance3d(Vec3(o.polys[k].getPoints()[0].getX(), o.polys[k].getPoints()[0].getY(), v), l.position) / l.radius) * l.intensity)
+                    lightFactor += ((distance3d(Vec3(o.polys[k].getPoints()[0].getX(), o.polys[k].getPoints()[0].getY(), v), l.position) / l.radius) * l.intensity)
 
                 # Turn c into color_rgb
                 c = c.getColorRGB(lightFactor, self.ambient)
@@ -259,6 +298,10 @@ class Window3d:
     def addLight(self, light):
         """Adds a light into the scene"""
         self.lights.append(light)
+
+    def delLight(self, light):
+        """Removes a light from the scene"""
+        self.lights.remove(light)
 
     def addCamera(self, camera):
         """Adds a camera into the scene"""
@@ -305,9 +348,9 @@ class RenderObject:
 
             # Rotate points if the camera is rotated
             if camera != None:
-                vr1 = rotate3d(v1, camera.rotation, camera.position)
-                vr2 = rotate3d(v2, camera.rotation, camera.position)
-                vr3 = rotate3d(v3, camera.rotation, camera.position)
+                vr1 = camera.getPerspective().multiplyVec(v1)
+                vr2 = camera.getPerspective().multiplyVec(v2)
+                vr3 = camera.getPerspective().multiplyVec(v3)
 
             p1 = convert3d2d(vr1)
             p2 = convert3d2d(vr2)
@@ -425,11 +468,26 @@ class Light:
         self.radius = radius
 
 class Camera:
-    def __init__(self, position, rotation, fov):
+    def __init__(self, position, rotation, fov, ratio):
         # Initialize variables
         self.position = position
         self.rotation = rotation
+        self.farClip = 100
+        self.nearClip = 1
         self.fov = fov
+        self.ratio = ratio
+        self.up = Vec3(0, 1, 0)
+
+    def getPerspective(self):
+        """Returns a perspective matrix"""
+        scale = 1 / (math.tan((self.fov / 2) * (3.14 / 180)))
+        result = Mat4([
+            [scale, 0, 0, 0],
+            [0, scale, 0, 0],
+            [0, 0, -self.farClip / (self.farClip - self.nearClip), -1],
+            [0, 0, -self.farClip * self.nearClip / (self.farClip - self.nearClip), 0]
+        ])
+        return result
 
 # Run the main function if this file is ran
 def main():
@@ -437,8 +495,13 @@ def main():
     window = Window3d("Test graphics", 640, 480)
 
     print("Generating camera")
-    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 0), 70)
-    #window.addCamera(cam)
+    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 0), 70, 640/480)
+    window.addCamera(cam)
+
+    # Create view matrix
+    viewMat = Mat4([
+
+    ])
 
     print("Generating light")
     l = Light(Vec3(320, 100, 100), 1, 2)
