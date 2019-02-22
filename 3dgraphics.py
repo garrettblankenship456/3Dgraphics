@@ -18,6 +18,19 @@ class Vec3:
         self.y = y
         self.z = z
 
+    def __str__(self):
+        s = "Vector 3:\n"
+        s += "  X: " + str(self.x) + "\n"
+        s += "  Y: " + str(self.y) + "\n"
+        s += "  Z: " + str(self.z) + "\n"
+        return s
+
+    def __add__(self, other):
+        return Vec3(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def __sub__(self, other):
+        return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
+
     def move(self, x = 0, y = 0, z = 0):
         """Moves vector"""
         self.x += x
@@ -30,9 +43,25 @@ class Vec3:
         self.y = y
         self.z = z
 
-    def __str__(self):
-        print("Vector: X =", self.x, " Y =", self.y, " Z = ", self.z)
-        return ""
+    def normalize(self):
+        """Normalizes the vector"""
+        # Get the magnitude
+        mag = math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
+
+        # Get the normalized vector
+        if mag > 0:
+            return Vec3(self.x / mag, self.y / mag, self.z / mag)
+
+        # If not able to divide, return 0
+        return Vec3(0, 0, 0)
+
+    def cross(self, other):
+        """Gets the cross product between two vectors"""
+        newVec = Vec3(self.y * other.z - self.z * other.y,
+                      self.x * other.z - self.z * other.x,
+                      self.x * other.y - self.y * other.x)
+        return newVec
+
 
 class Color:
     """Holds color data"""
@@ -98,6 +127,20 @@ class Mat4:
         result = self.multiply4x4(result)
         result = Vec3(result[0][0], result[0][1], result[0][2])
         return result
+
+    def invert(self):
+        """Returns the inverse of the matrix"""
+        result = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+
+        # Get lengths
+        m = len(result) - 1
+        n = len(result[0]) - 1
+
+        for i in range(len(self.matrix)):
+            for j in range(len(self.matrix[0])):
+                result[m - i][n - j] = self.matrix[i][j]
+
+        return Mat4(result)
 
 # Functions
 def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
@@ -217,6 +260,19 @@ def loadObj(path):
     # Cleanup and returning data
     f.close()
     return vOut
+
+def lookAt(eye, target, up):
+    """Creates a view matrix with the given parameters"""
+    vZ = (eye - target).normalize()
+    vX = up.cross(vZ).normalize()
+    vY = vZ.cross(vX)
+    inverseMatrix = [
+        [vX.x, vX.y, vX.z, 0],
+        [vY.x, vY.y, vY.z, 0],
+        [vZ.x, vZ.y, vY.z, 0],
+        [eye.x, eye.y, eye.z, 1]
+    ]
+    return Mat4(inverseMatrix).invert()
 
 # Classes
 class Window3d:
@@ -348,9 +404,14 @@ class RenderObject:
 
             # Rotate points if the camera is rotated
             if camera != None:
-                vr1 = camera.getPerspective().multiplyVec(v1)
-                vr2 = camera.getPerspective().multiplyVec(v2)
-                vr3 = camera.getPerspective().multiplyVec(v3)
+                projection = camera.getPerspective()
+                view = camera.getView()
+                model = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+                modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
+
+                vr1 = modelviewprojection.multiplyVec(v1)
+                vr2 = modelviewprojection.multiplyVec(v2)
+                vr3 = modelviewprojection.multiplyVec(v3)
 
             p1 = convert3d2d(vr1)
             p2 = convert3d2d(vr2)
@@ -489,19 +550,18 @@ class Camera:
         ])
         return result
 
+    def getView(self):
+        """Returns the view matrix"""
+        return lookAt(self.position, self.rotation, self.up)
+
 # Run the main function if this file is ran
 def main():
     print("Generating window")
     window = Window3d("Test graphics", 640, 480)
 
     print("Generating camera")
-    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 0), 70, 640/480)
+    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 1), 70, 640/480)
     window.addCamera(cam)
-
-    # Create view matrix
-    viewMat = Mat4([
-
-    ])
 
     print("Generating light")
     l = Light(Vec3(320, 100, 100), 1, 2)
