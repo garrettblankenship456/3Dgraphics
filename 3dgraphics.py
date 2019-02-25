@@ -62,7 +62,6 @@ class Vec3:
                       self.x * other.y - self.y * other.x)
         return newVec
 
-
 class Color:
     """Holds color data"""
     def __init__(self, r = 0, g = 0, b = 0):
@@ -392,17 +391,12 @@ class RenderObject:
         # Count by threes because a triangle has three points and
         # a mesh is made out of three points
         for i in range(0, len(self.vertices), 3):
-            # Get the position of all the seperate points
-            v1 = add3d(multiply3d(self.vertices[i], self.scale), self.position)
-            v2 = add3d(multiply3d(self.vertices[i + 1], self.scale), self.position)
-            v3 = add3d(multiply3d(self.vertices[i + 2], self.scale), self.position)
+            # Get the vertices from the array
+            v1 = self.vertices[i]
+            v2 = self.vertices[i + 1]
+            v3 = self.vertices[i + 2]
 
-            # Rotate after
-            vr1 = rotate3d(v1, self.rotation, self.position)
-            vr2 = rotate3d(v2, self.rotation, self.position)
-            vr3 = rotate3d(v3, self.rotation, self.position)
-
-            # Rotate points if the camera is rotated
+            # Rotate points if the camera is active
             if camera != None:
                 projection = camera.getPerspective()
                 view = camera.getView()
