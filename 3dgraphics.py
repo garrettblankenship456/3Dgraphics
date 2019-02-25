@@ -62,6 +62,10 @@ class Vec3:
                       self.x * other.y - self.y * other.x)
         return newVec
 
+    def getCopy(self):
+        """Gets a copied vector"""
+        return Vec3(self.x, self.y, self.z)
+
 class Color:
     """Holds color data"""
     def __init__(self, r = 0, g = 0, b = 0):
@@ -390,23 +394,48 @@ class RenderObject:
         """When called it generates polygons from the points given"""
         # Count by threes because a triangle has three points and
         # a mesh is made out of three points
+
+        # Create matrices
+        # Initialize matrices to identity matrices
+        projection = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+        view = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+        model = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+
+        # Set projection and view
+        if camera != None:
+            projection = camera.getPerspective()
+            view = camera.getView()
+
+        # Translate, rotate, and scale the model matrix
+        # Translate
+        translateMatrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [self.position.x, self.position.y, self.position.z, 1]])
+        # Rotate
+        rotationMatrixX = Mat4([[1, 0, 0, 0], [0, math.cos(self.rotation.x), -math.sin(self.rotation.x), 0], [0, math.sin(self.rotation.x), math.cos(self.rotation.x), 0], [0, 0, 0, 1]])
+        rotationMatrixY = Mat4([[math.cos(self.rotation.y), 0, math.sin(self.rotation.y), 0], [0, 1, 0, 0], [-math.sin(self.rotation.y), 0, math.cos(self.rotation.x), 0], [0, 0, 0, 1]])
+        rotationMatrixZ = Mat4([[math.cos(self.rotation.z), -math.sin(self.rotation.z), 0, 0], [math.sin(self.rotation.z), math.cos(self.rotation.z), 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        # Scale
+        scaleMatrix = Mat4([[self.scale.x, 0, 0, 0], [0, self.scale.y, 0, 0], [0, 0, self.scale.z, 0], [0, 0, 0, 1]])
+        # Make one singular rotation matrix
+        rotationMatrixAll = rotationMatrixX.multiply4x4(rotationMatrixY).multiply4x4(rotationMatrixZ)
+        # Put it all together
+        model = translateMatrix.multiply4x4(rotationMatrixAll).multiply4x4(scaleMatrix)
+
+        # Calculate MVP matrix
+        modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
+
+        # Make each polygon
         for i in range(0, len(self.vertices), 3):
             # Get the vertices from the array
-            v1 = self.vertices[i]
-            v2 = self.vertices[i + 1]
-            v3 = self.vertices[i + 2]
+            v1 = self.vertices[i].getCopy()
+            v2 = self.vertices[i + 1].getCopy()
+            v3 = self.vertices[i + 2].getCopy()
 
-            # Rotate points if the camera is active
-            if camera != None:
-                projection = camera.getPerspective()
-                view = camera.getView()
-                model = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
-                modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
+            # Multiply the points by the given MVP matrix
+            vr1 = modelviewprojection.multiplyVec(v1)
+            vr2 = modelviewprojection.multiplyVec(v2)
+            vr3 = modelviewprojection.multiplyVec(v3)
 
-                vr1 = modelviewprojection.multiplyVec(v1)
-                vr2 = modelviewprojection.multiplyVec(v2)
-                vr3 = modelviewprojection.multiplyVec(v3)
-
+            # Put points on the screen
             p1 = convert3d2d(vr1)
             p2 = convert3d2d(vr2)
             p3 = convert3d2d(vr3)
