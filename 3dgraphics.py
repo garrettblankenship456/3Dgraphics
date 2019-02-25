@@ -178,10 +178,11 @@ def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
     # Return data
     return position
 
-def convert3d2d(position):
+def convert3d2d(position, center):
     """Changes a 3d point into 2d"""
     # Add into point for returning
-    p = Point(position.x, position.y)
+    p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
+    #p = Point(position.x, position.y)
     # Return data
     return p
 
@@ -406,13 +407,33 @@ class RenderObject:
             projection = camera.getPerspective()
             view = camera.getView()
 
+        # Convert to radians
+        xRot = self.rotation.x * (3.14/180)
+        yRot = self.rotation.y * (3.14/180)
+        zRot = self.rotation.z * (3.14/180)
+
         # Translate, rotate, and scale the model matrix
         # Translate
         translateMatrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [self.position.x, self.position.y, self.position.z, 1]])
         # Rotate
-        rotationMatrixX = Mat4([[1, 0, 0, 0], [0, math.cos(self.rotation.x), -math.sin(self.rotation.x), 0], [0, math.sin(self.rotation.x), math.cos(self.rotation.x), 0], [0, 0, 0, 1]])
-        rotationMatrixY = Mat4([[math.cos(self.rotation.y), 0, math.sin(self.rotation.y), 0], [0, 1, 0, 0], [-math.sin(self.rotation.y), 0, math.cos(self.rotation.x), 0], [0, 0, 0, 1]])
-        rotationMatrixZ = Mat4([[math.cos(self.rotation.z), -math.sin(self.rotation.z), 0, 0], [math.sin(self.rotation.z), math.cos(self.rotation.z), 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        rotationMatrixX = Mat4([
+                                [1, 0, 0, 0],
+                                [0, math.cos(xRot), -math.sin(xRot), 0],
+                                [0, math.sin(xRot), math.cos(xRot), 0],
+                                [0, 0, 0, 1]
+                              ])
+        rotationMatrixY = Mat4([
+                                [math.cos(yRot), 0, math.sin(yRot), 0],
+                                [0, 1, 0, 0],
+                                [-math.sin(yRot), 0, math.cos(yRot), 0],
+                                [0, 0, 0, 1]
+                              ])
+        rotationMatrixZ = Mat4([
+                                [math.cos(zRot), -math.sin(zRot), 0, 0],
+                                [math.sin(zRot), math.cos(zRot), 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, 1]
+                              ])
         # Scale
         scaleMatrix = Mat4([[self.scale.x, 0, 0, 0], [0, self.scale.y, 0, 0], [0, 0, self.scale.z, 0], [0, 0, 0, 1]])
         # Make one singular rotation matrix
@@ -436,9 +457,9 @@ class RenderObject:
             vr3 = modelviewprojection.multiplyVec(v3)
 
             # Put points on the screen
-            p1 = convert3d2d(vr1)
-            p2 = convert3d2d(vr2)
-            p3 = convert3d2d(vr3)
+            p1 = convert3d2d(vr1, self.position)
+            p2 = convert3d2d(vr2, self.position)
+            p3 = convert3d2d(vr3, self.position)
 
             # Get the lowest point
             zDepths = [getZDepth(v1, self.rotation, self.position), getZDepth(v2, self.rotation, self.position), getZDepth(v3, self.rotation, self.position)]
@@ -583,7 +604,7 @@ def main():
     window = Window3d("Test graphics", 640, 480)
 
     print("Generating camera")
-    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 1), 70, 640/480)
+    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 1), 45, 640/480)
     window.addCamera(cam)
 
     print("Generating light")
@@ -591,7 +612,7 @@ def main():
     window.addLight(l)
 
     print("Generating model")
-    mdl = Model("models/cube.obj", Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    mdl = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
     mdl.render(window)
 
     while True:
