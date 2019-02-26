@@ -9,6 +9,9 @@ from time import sleep
 #       of a 3d look to the object
 #   Make the entire object 3d points and have the renderer use a view and perspective
 #       matrix to give the get the points for 3d
+#   Make the coordinate system homogenous so the matrices provide the right cooridnates, rightn ow the perspective only
+#       moves the coordinates a few decimals but the way it works right now doesnt affect it because 0.3 doesnt mean much
+#       to 640 or 480 but it does to a -1 to 1
 
 # Data classes
 class Vec3:
@@ -182,6 +185,7 @@ def convert3d2d(position, center):
     """Changes a 3d point into 2d"""
     # Add into point for returning
     p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
+    #p = Point((position.x * 640) / 2 + center.x, (position.y * 480) / 2 + center.y)
     #p = Point(position.x, position.y)
     # Return data
     return p
@@ -439,10 +443,11 @@ class RenderObject:
         # Make one singular rotation matrix
         rotationMatrixAll = rotationMatrixX.multiply4x4(rotationMatrixY).multiply4x4(rotationMatrixZ)
         # Put it all together
-        model = translateMatrix.multiply4x4(rotationMatrixAll).multiply4x4(scaleMatrix)
+        model = translateMatrix.multiply4x4(scaleMatrix)
 
         # Calculate MVP matrix
-        modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
+        modelviewprojection = projection.multiply4x4(model)
+        #modelviewprojection = modelviewprojection.multiply4x4(model)
 
         # Make each polygon
         for i in range(0, len(self.vertices), 3):
@@ -451,10 +456,13 @@ class RenderObject:
             v2 = self.vertices[i + 1].getCopy()
             v3 = self.vertices[i + 2].getCopy()
 
-            # Multiply the points by the given MVP matrix
-            vr1 = modelviewprojection.multiplyVec(v1)
-            vr2 = modelviewprojection.multiplyVec(v2)
-            vr3 = modelviewprojection.multiplyVec(v3)
+            # Multiply the points by the given MVP matrix and rotate the points given
+            vr1 = rotate3d(modelviewprojection.multiplyVec(v1), self.rotation)
+            vr2 = rotate3d(modelviewprojection.multiplyVec(v2), self.rotation)
+            vr3 = rotate3d(modelviewprojection.multiplyVec(v3), self.rotation)
+            #vr1 = projection.multiply4x4(translateMatrix).multiplyVec(v1)
+            #vr2 = projection.multiply4x4(translateMatrix).multiplyVec(v2)
+            #vr3 = projection.multiply4x4(translateMatrix).multiplyVec(v3)
 
             # Put points on the screen
             p1 = convert3d2d(vr1, self.position)
@@ -587,10 +595,10 @@ class Camera:
         """Returns a perspective matrix"""
         scale = 1 / (math.tan((self.fov / 2) * (3.14 / 180)))
         result = Mat4([
-            [scale, 0, 0, 0],
-            [0, scale, 0, 0],
-            [0, 0, -self.farClip / (self.farClip - self.nearClip), -1],
-            [0, 0, -self.farClip * self.nearClip / (self.farClip - self.nearClip), 0]
+            [1 / (self.ratio * math.tan(self.fov / 2)), 0, 0, 0],
+            [0, 1 / math.tan(self.fov / 2), 0, 0],
+            [0, 0, (self.nearClip + self.farClip) / (self.nearClip - self.farClip), (2 * self.nearClip - self.farClip) / (self.nearClip - self.farClip)],
+            [0, 0, -1, 0]
         ])
         return result
 
@@ -604,7 +612,7 @@ def main():
     window = Window3d("Test graphics", 640, 480)
 
     print("Generating camera")
-    cam = Camera(Vec3(0, 0, 0), Vec3(0, 0, 1), 45, 640/480)
+    cam = Camera(Vec3(0, 0, -10), Vec3(0, 0, 1), 45, 640/480)
     window.addCamera(cam)
 
     print("Generating light")
@@ -618,7 +626,8 @@ def main():
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            mdl.rotate(Vec3(2, 0, 0))
+            #mdl.rotate(Vec3(2, 0, 0))
+            cam.position.z -= 1
         if "s" in keysPressed:
             mdl.rotate(Vec3(-2, 0, 0))
 
@@ -628,9 +637,9 @@ def main():
             mdl.rotate(Vec3(0, -2, 0))
 
         if "q" in keysPressed:
-            mdl.rotate(Vec3(0, 0, 2))
+            mdl.move(Vec3(0, 0, 2))
         if "e" in keysPressed:
-            mdl.rotate(Vec3(0, 0, -2))
+            mdl.move(Vec3(0, 0, -2))
 
         if "c" in keysPressed:
             mdl.setScale(add3d(Vec3(2, 2, 2), mdl.scale))
