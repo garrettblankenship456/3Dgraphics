@@ -512,12 +512,6 @@ class RenderObject:
             # Push back into the polygons array
             self.polys.append(Polygon(p1, p2, p3))
 
-        # Color all the polygons randomly
-        l = 0
-        for p in self.polys:
-            l += 20
-            p.setFill(color_rgb(l, 0, 0))
-
     def render(self, window):
         """Draws the object to the screen"""
         window.drawObj(self)
@@ -654,29 +648,29 @@ def main():
     window.addLight(l)
 
     print("Generating model")
-    mdl = Cube(Vec3(320, 240, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    mdl = Model("models/cube.obj", Vec3(100, 100, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
     mdl.render(window)
 
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            #mdl.rotate(Vec3(2, 0, 0))
-            cam.pitch -= 1
+            mdl.rotate(Vec3(2, 0, 0))
+            #cam.position.z += 1
         if "s" in keysPressed:
-            #mdl.rotate(Vec3(-2, 0, 0))
-            cam.pitch += 1
+            mdl.rotate(Vec3(-2, 0, 0))
+            #cam.position.z -= 1
 
         if "a" in keysPressed:
-            #mdl.rotate(Vec3(0, 2, 0))
-            cam.yaw -= 1
+            mdl.rotate(Vec3(0, 2, 0))
+            #cam.position.x += 1
         if "d" in keysPressed:
-            #mdl.rotate(Vec3(0, -2, 0))
-            cam.yaw += 1
+            mdl.rotate(Vec3(0, -2, 0))
+            #cam.position.x -= 1
 
         if "q" in keysPressed:
-            mdl.move(Vec3(0, 0, 2))
+            mdl.move(Vec3(0, 0, 20))
         if "e" in keysPressed:
-            mdl.move(Vec3(0, 0, -2))
+            mdl.move(Vec3(0, 0, -20))
 
         if "c" in keysPressed:
             mdl.setScale(add3d(Vec3(2, 2, 2), mdl.scale))
