@@ -129,9 +129,14 @@ class Mat4:
 
     def multiplyVec(self, vector):
         """Multiplies this matrix by the vector provided"""
-        result = [[vector.x, vector.y, vector.z, 1]]
+        result = [
+            [vector.x],
+            [vector.y],
+            [vector.z],
+            [1]
+        ]
         result = self.multiply4x4(result)
-        result = Vec3(result[0][0], result[0][1], result[0][2])
+        result = Vec3(result[0][0], result[1][0], result[2][0])
         return result
 
     def invert(self):
@@ -147,6 +152,12 @@ class Mat4:
                 result[m - i][n - j] = self.matrix[i][j]
 
         return Mat4(result)
+
+# Math functions
+def dot(v1, v2):
+    """Gets dot product of two 3d vectors"""
+    result = (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z)
+    return result
 
 # Functions
 def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
@@ -185,8 +196,6 @@ def convert3d2d(position, center):
     """Changes a 3d point into 2d"""
     # Add into point for returning
     p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
-    #p = Point((position.x * 640) / 2 + center.x, (position.y * 480) / 2 + center.y)
-    #p = Point(position.x, position.y)
     # Return data
     return p
 
@@ -275,12 +284,38 @@ def lookAt(eye, target, up):
     vX = up.cross(vZ).normalize()
     vY = vZ.cross(vX)
     inverseMatrix = [
-        [vX.x, vX.y, vX.z, 0],
-        [vY.x, vY.y, vY.z, 0],
-        [vZ.x, vZ.y, vY.z, 0],
-        [eye.x, eye.y, eye.z, 1]
+        [vX.x, vY.x, vZ.x, 0],
+        [vX.y, vY.y, vZ.y, 0],
+        [vX.z, vY.z, vZ.z, 0],
+        [-eye.x, -eye.y, -eye.z, 1]
     ]
-    return Mat4(inverseMatrix).invert()
+    return Mat4(inverseMatrix)
+
+def lookAtFPS(eye, pitch, yaw):
+    """Creates a view matrix based upon pitch and yaw"""
+    # Convert to radian
+    pitch = pitch * (3.14 / 180)
+    yaw = yaw * (3.14 / 180)
+
+    # Get cos and sin for pitch and yaw
+    cosPitch = math.cos(pitch)
+    sinPitch = math.sin(pitch)
+    cosYaw = math.cos(yaw)
+    sinYaw = math.sin(yaw)
+
+    # Create axises
+    xAxis = Vec3(cosYaw, 0, -sinYaw)
+    yAxis = Vec3(sinYaw * sinPitch, cosPitch, cosYaw * sinPitch)
+    zAxis = Vec3(sinYaw * cosPitch, -sinPitch, cosPitch * cosYaw)
+
+    # Matrix
+    result = Mat4([
+        [xAxis.x, yAxis.x, zAxis.x, 0],
+        [xAxis.y, yAxis.y, zAxis.y, 0],
+        [xAxis.z, yAxis.z, zAxis.z, 0],
+        [-dot(xAxis, eye), -dot(yAxis, eye), -dot(zAxis, eye), 1]
+    ])
+    return result
 
 # Classes
 class Window3d:
@@ -404,7 +439,6 @@ class RenderObject:
         # Initialize matrices to identity matrices
         projection = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
         view = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
-        model = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
 
         # Set projection and view
         if camera != None:
@@ -418,7 +452,12 @@ class RenderObject:
 
         # Translate, rotate, and scale the model matrix
         # Translate
-        translateMatrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [self.position.x, self.position.y, self.position.z, 1]])
+        translateMatrix = Mat4([
+            [1, 0, 0, self.position.x],
+            [0, 1, 0, self.position.y],
+            [0, 0, 1, self.position.z],
+            [0, 0, 0, 1]
+        ])
         # Rotate
         rotationMatrixX = Mat4([
                                 [1, 0, 0, 0],
@@ -443,11 +482,10 @@ class RenderObject:
         # Make one singular rotation matrix
         rotationMatrixAll = rotationMatrixX.multiply4x4(rotationMatrixY).multiply4x4(rotationMatrixZ)
         # Put it all together
-        model = translateMatrix.multiply4x4(scaleMatrix)
+        model = translateMatrix.multiply4x4(scaleMatrix).multiply4x4(rotationMatrixAll)
 
         # Calculate MVP matrix
-        modelviewprojection = projection.multiply4x4(model)
-        #modelviewprojection = modelviewprojection.multiply4x4(model)
+        modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
 
         # Make each polygon
         for i in range(0, len(self.vertices), 3):
@@ -457,12 +495,9 @@ class RenderObject:
             v3 = self.vertices[i + 2].getCopy()
 
             # Multiply the points by the given MVP matrix and rotate the points given
-            vr1 = rotate3d(modelviewprojection.multiplyVec(v1), self.rotation)
-            vr2 = rotate3d(modelviewprojection.multiplyVec(v2), self.rotation)
-            vr3 = rotate3d(modelviewprojection.multiplyVec(v3), self.rotation)
-            #vr1 = projection.multiply4x4(translateMatrix).multiplyVec(v1)
-            #vr2 = projection.multiply4x4(translateMatrix).multiplyVec(v2)
-            #vr3 = projection.multiply4x4(translateMatrix).multiplyVec(v3)
+            vr1 = modelviewprojection.multiplyVec(v1)
+            vr2 = modelviewprojection.multiplyVec(v2)
+            vr3 = modelviewprojection.multiplyVec(v3)
 
             # Put points on the screen
             p1 = convert3d2d(vr1, self.position)
@@ -581,19 +616,18 @@ class Light:
         self.radius = radius
 
 class Camera:
-    def __init__(self, position, rotation, fov, ratio):
+    def __init__(self, position, fov, ratio):
         # Initialize variables
         self.position = position
-        self.rotation = rotation
         self.farClip = 100
         self.nearClip = 1
         self.fov = fov
         self.ratio = ratio
-        self.up = Vec3(0, 1, 0)
+        self.pitch = 0
+        self.yaw = 0
 
     def getPerspective(self):
         """Returns a perspective matrix"""
-        scale = 1 / (math.tan((self.fov / 2) * (3.14 / 180)))
         result = Mat4([
             [1 / (self.ratio * math.tan(self.fov / 2)), 0, 0, 0],
             [0, 1 / math.tan(self.fov / 2), 0, 0],
@@ -604,7 +638,7 @@ class Camera:
 
     def getView(self):
         """Returns the view matrix"""
-        return lookAt(self.position, self.rotation, self.up)
+        return lookAtFPS(self.position, self.pitch, self.yaw)
 
 # Run the main function if this file is ran
 def main():
@@ -612,7 +646,7 @@ def main():
     window = Window3d("Test graphics", 640, 480)
 
     print("Generating camera")
-    cam = Camera(Vec3(0, 0, -10), Vec3(0, 0, 1), 45, 640/480)
+    cam = Camera(Vec3(0, 4, 0), 45, 640/480)
     window.addCamera(cam)
 
     print("Generating light")
@@ -627,14 +661,17 @@ def main():
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
             #mdl.rotate(Vec3(2, 0, 0))
-            cam.position.z -= 1
+            cam.pitch -= 1
         if "s" in keysPressed:
-            mdl.rotate(Vec3(-2, 0, 0))
+            #mdl.rotate(Vec3(-2, 0, 0))
+            cam.pitch += 1
 
         if "a" in keysPressed:
-            mdl.rotate(Vec3(0, 2, 0))
+            #mdl.rotate(Vec3(0, 2, 0))
+            cam.yaw -= 1
         if "d" in keysPressed:
-            mdl.rotate(Vec3(0, -2, 0))
+            #mdl.rotate(Vec3(0, -2, 0))
+            cam.yaw += 1
 
         if "q" in keysPressed:
             mdl.move(Vec3(0, 0, 2))
