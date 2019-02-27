@@ -1,0 +1,9 @@
+Putting this file here because ill forgot tomorrow. The multiplyVec is wrong, its trying to multiply a 4x4 matrix by a 1x4 vector 4 matrix.
+This causes the math to be done incorrectly. A possible fix is to make the matrix like the following
+
+[[x, 0, 0, 0],
+[y, 0, 0, 0],
+[z, 0, 0, 0],
+[1, 0, 0, 0]]
+
+But ill have to play with it a bit
