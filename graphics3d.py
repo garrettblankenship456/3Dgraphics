@@ -117,6 +117,15 @@ class Mat4:
         # Returns the length of the matrix
         return len(self.matrix)
 
+    def __mul__(self, other):
+        # Multiplies two matrices together
+        result = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        for i in range(len(self.matrix)):
+            for j in range(len(other[0])):
+                for k in range(len(other)):
+                    result[i][j] += self.matrix[i][k] * other[k][j]
+        return Mat4(result)
+
     def multiply4x4(self, matrix):
         """Multiplies this matrix by the one provided"""
         result = [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]]
@@ -152,6 +161,22 @@ class Mat4:
                 result[m - i][n - j] = self.matrix[i][j]
 
         return Mat4(result)
+
+    @staticmethod
+    def identity():
+        """Returns identity matrix"""
+        return Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+    @staticmethod
+    def toMat4(vector):
+        """Converts a vector into a 4x1 matrix"""
+        result = [
+            [vector.x],
+            [vector.y],
+            [vector.z],
+            1
+        ]
+        return result
 
 # Math functions
 def dot(v1, v2):
@@ -195,7 +220,9 @@ def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
 def convert3d2d(position, center):
     """Changes a 3d point into 2d"""
     # Add into point for returning
-    p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
+    #p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
+    p = Point((position.x / -position.z) * 640 + 320, (position.y / -position.z) * 480 + 240)
+    print(position)
     # Return data
     return p
 
@@ -437,7 +464,7 @@ class RenderObject:
 
         # Create matrices
         # Initialize matrices to identity matrices
-        projection = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+        projection = Mat4.identity()
         view = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
 
         # Set projection and view
@@ -480,12 +507,12 @@ class RenderObject:
         # Scale
         scaleMatrix = Mat4([[self.scale.x, 0, 0, 0], [0, self.scale.y, 0, 0], [0, 0, self.scale.z, 0], [0, 0, 0, 1]])
         # Make one singular rotation matrix
-        rotationMatrixAll = rotationMatrixX.multiply4x4(rotationMatrixY).multiply4x4(rotationMatrixZ)
+        rotationMatrixAll = rotationMatrixX * rotationMatrixY * rotationMatrixZ
         # Put it all together
-        model = translateMatrix.multiply4x4(scaleMatrix).multiply4x4(rotationMatrixAll)
+        model = translateMatrix * scaleMatrix * rotationMatrixAll
 
         # Calculate MVP matrix
-        modelviewprojection = projection.multiply4x4(view).multiply4x4(model)
+        modelviewprojection = projection * view * model
 
         # Make each polygon
         for i in range(0, len(self.vertices), 3):
@@ -648,16 +675,17 @@ def main():
     window.addLight(l)
 
     print("Generating model")
-    mdl = Model("models/cube.obj", Vec3(100, 100, 0), Vec3(0, 0, 0), Vec3(100, 100, 100), Color(255, 0, 0))
+    mdl = Model("models/cube.obj", Vec3(0, 0, -5), Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5), Color(255, 0, 0))
     mdl.render(window)
 
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            mdl.rotate(Vec3(2, 0, 0))
+            #mdl.rotate(Vec3(2, 0, 0))
+            mdl.move(Vec3(0, 0, 0.1))
             #cam.position.z += 1
         if "s" in keysPressed:
-            mdl.rotate(Vec3(-2, 0, 0))
+            mdl.move(Vec3(0, 0, -0.1))
             #cam.position.z -= 1
 
         if "a" in keysPressed:
@@ -673,9 +701,9 @@ def main():
             mdl.move(Vec3(0, 0, -20))
 
         if "c" in keysPressed:
-            mdl.setScale(add3d(Vec3(2, 2, 2), mdl.scale))
+            mdl.setScale(add3d(Vec3(0.1, 0.1, 0.1), mdl.scale))
         if "v" in keysPressed:
-            mdl.setScale(add3d(Vec3(-2, -2, -2), mdl.scale))
+            mdl.setScale(add3d(Vec3(-0.1, -0.1, -0.1), mdl.scale))
 
         if "Escape" in keysPressed:
             print("Exitting")
