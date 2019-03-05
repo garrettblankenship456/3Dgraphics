@@ -5,13 +5,8 @@ import math
 from time import sleep
 
 # TODO:
-#   Make it so when a point is farther back X and Y are reduced to give more
-#       of a 3d look to the object
-#   Make the entire object 3d points and have the renderer use a view and perspective
-#       matrix to give the get the points for 3d
-#   Make the coordinate system homogenous so the matrices provide the right cooridnates, rightn ow the perspective only
-#       moves the coordinates a few decimals but the way it works right now doesnt affect it because 0.3 doesnt mean much
-#       to 640 or 480 but it does to a -1 to 1
+#   Fix lookAt matrix
+#   Make lighting use 3d vectors instead of 2d
 
 # Data classes
 class Vec3:
@@ -34,6 +29,9 @@ class Vec3:
     def __sub__(self, other):
         return Vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
+    def __neg__(self):
+        return Vec3(-self.x, -self.y, -self.z)
+
     def move(self, x = 0, y = 0, z = 0):
         """Moves vector"""
         self.x += x
@@ -46,28 +44,30 @@ class Vec3:
         self.y = y
         self.z = z
 
-    def normalize(self):
+    def getCopy(self):
+        """Gets a copied vector"""
+        return Vec3(self.x, self.y, self.z)
+
+    @staticmethod
+    def normalize(v):
         """Normalizes the vector"""
         # Get the magnitude
-        mag = math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
+        mag = math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
 
         # Get the normalized vector
         if mag > 0:
-            return Vec3(self.x / mag, self.y / mag, self.z / mag)
+            return Vec3(v.x / mag, v.y / mag, v.z / mag)
 
         # If not able to divide, return 0
         return Vec3(0, 0, 0)
 
-    def cross(self, other):
+    @staticmethod
+    def cross(v1, v2):
         """Gets the cross product between two vectors"""
-        newVec = Vec3(self.y * other.z - self.z * other.y,
-                      self.x * other.z - self.z * other.x,
-                      self.x * other.y - self.y * other.x)
+        newVec = Vec3(v1.y * v2.z - v1.z * v2.y,
+                      v1.x * v2.z - v1.z * v2.x,
+                      v1.x * v2.y - v1.y * v2.x)
         return newVec
-
-    def getCopy(self):
-        """Gets a copied vector"""
-        return Vec3(self.x, self.y, self.z)
 
 class Color:
     """Holds color data"""
@@ -307,16 +307,8 @@ def loadObj(path):
 
 def lookAt(eye, target, up):
     """Creates a view matrix with the given parameters"""
-    vZ = (eye - target).normalize()
-    vX = up.cross(vZ).normalize()
-    vY = vZ.cross(vX)
-    inverseMatrix = [
-        [vX.x, vY.x, vZ.x, 0],
-        [vX.y, vY.y, vZ.y, 0],
-        [vX.z, vY.z, vZ.z, 0],
-        [-eye.x, -eye.y, -eye.z, 1]
-    ]
-    return Mat4(inverseMatrix)
+    result = Mat4.identity()
+    return result
 
 def lookAtFPS(eye, pitch, yaw):
     """Creates a view matrix based upon pitch and yaw"""
@@ -465,7 +457,7 @@ class RenderObject:
         # Create matrices
         # Initialize matrices to identity matrices
         projection = Mat4.identity()
-        view = Mat4([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+        view = Mat4.identity()
 
         # Set projection and view
         if camera != None:
@@ -652,14 +644,15 @@ class Camera:
         result = Mat4([
             [1 / (self.ratio * math.tan(self.fov / 2)), 0, 0, 0],
             [0, 1 / math.tan(self.fov / 2), 0, 0],
-            [0, 0, (self.nearClip + self.farClip) / (self.nearClip - self.farClip), (2 * self.nearClip - self.farClip) / (self.nearClip - self.farClip)],
+            [0, 0, (self.nearClip + self.farClip) / (self.nearClip - self.farClip), (self.nearClip - self.farClip) / (self.nearClip - self.farClip)],
             [0, 0, -1, 0]
         ])
         return result
 
     def getView(self):
         """Returns the view matrix"""
-        return lookAtFPS(self.position, self.pitch, self.yaw)
+        #return lookAtFPS(self.position, self.pitch, self.yaw)
+        return lookAt(self.position, Vec3(0, 0, 1), Vec3(0, 1, 0))
 
 # Run the main function if this file is ran
 def main():
@@ -675,30 +668,33 @@ def main():
     window.addLight(l)
 
     print("Generating model")
-    mdl = Model("models/cube.obj", Vec3(0, 0, -5), Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5), Color(255, 0, 0))
+    mdl = Model("models/cube.obj", Vec3(0, 0, 5), Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5), Color(255, 0, 0))
     mdl.render(window)
 
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            #mdl.rotate(Vec3(2, 0, 0))
-            mdl.move(Vec3(0, 0, 0.1))
-            #cam.position.z += 1
+            mdl.rotate(Vec3(-2, 0, 0))
+            #mdl.move(Vec3(0, 0, 0.1))
+            #cam.pitch += 0.1
         if "s" in keysPressed:
-            mdl.move(Vec3(0, 0, -0.1))
-            #cam.position.z -= 1
+            mdl.rotate(Vec3(2, 0, 0))
+            #mdl.move(Vec3(0, 0, -0.1))
+            #cam.pitch -= 0.1
 
         if "a" in keysPressed:
             mdl.rotate(Vec3(0, 2, 0))
-            #cam.position.x += 1
+            #cam.yaw += 0.1
         if "d" in keysPressed:
             mdl.rotate(Vec3(0, -2, 0))
-            #cam.position.x -= 1
+            #cam.yaw -= 0.1
 
         if "q" in keysPressed:
-            mdl.move(Vec3(0, 0, 20))
+            mdl.rotate(Vec3(0, 0, 2))
+            #cam.position.x += 1
         if "e" in keysPressed:
-            mdl.move(Vec3(0, 0, -20))
+            mdl.rotate(Vec3(0, 0, -2))
+            #cam.position.x -= 1
 
         if "c" in keysPressed:
             mdl.setScale(add3d(Vec3(0.1, 0.1, 0.1), mdl.scale))
