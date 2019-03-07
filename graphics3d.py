@@ -7,6 +7,7 @@ from time import sleep
 # TODO:
 #   Fix lookAt matrix
 #   Make lighting use 3d vectors instead of 2d
+#   Dont render anythi ng thats off the screen
 
 # Data classes
 class Vec3:
@@ -222,7 +223,6 @@ def convert3d2d(position, center):
     # Add into point for returning
     #p = Point(position.x / 2 + center.x, position.y / 2 + center.y)
     p = Point((position.x / -position.z) * 640 + 320, (position.y / -position.z) * 480 + 240)
-    print(position)
     # Return data
     return p
 
@@ -307,7 +307,26 @@ def loadObj(path):
 
 def lookAt(eye, target, up):
     """Creates a view matrix with the given parameters"""
-    result = Mat4.identity()
+    # Get axises
+    zaxis = Vec3.normalize(eye - target)
+    xaxis = Vec3.normalize(Vec3.cross(up, zaxis))
+    yaxis = Vec3.cross(zaxis, xaxis)
+
+    # Create orentation matrix
+    orentation = Mat4([
+        [xaxis.x, yaxis.x, zaxis.x, 0],
+        [xaxis.y, yaxis.y, zaxis.y, 0],
+        [xaxis.z, yaxis.z, zaxis.z, 0],
+        [0, 0, 0, 1]
+    ])
+    translation = Mat4([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [-eye.x, -eye.y, -eye.z, 1]
+    ])
+    result = orentation * translation
+
     return result
 
 def lookAtFPS(eye, pitch, yaw):
@@ -526,10 +545,11 @@ class RenderObject:
             # Get the lowest point
             zDepths = [getZDepth(v1, self.rotation, self.position), getZDepth(v2, self.rotation, self.position), getZDepth(v3, self.rotation, self.position)]
             # Populate polygon depths (more X and Y means on the screen)
-            self.polyAreas.append(max(zDepths))
 
-            # Push back into the polygons array
-            self.polys.append(Polygon(p1, p2, p3))
+            # Push back into the polygons array only if the polygon is negative space
+            if vr1.z < 0 and vr2.z < 0 and vr3.z < 0:
+                self.polyAreas.append(max(zDepths))
+                self.polys.append(Polygon(p1, p2, p3))
 
     def render(self, window):
         """Draws the object to the screen"""
@@ -638,6 +658,7 @@ class Camera:
         self.ratio = ratio
         self.pitch = 0
         self.yaw = 0
+        self.rotation = Vec3()
 
     def getPerspective(self):
         """Returns a perspective matrix"""
@@ -652,7 +673,7 @@ class Camera:
     def getView(self):
         """Returns the view matrix"""
         #return lookAtFPS(self.position, self.pitch, self.yaw)
-        return lookAt(self.position, Vec3(0, 0, 1), Vec3(0, 1, 0))
+        return lookAt(self.position, self.rotation, Vec3(0, 1, 0))
 
 # Run the main function if this file is ran
 def main():
@@ -674,19 +695,23 @@ def main():
     while True:
         keysPressed = window.window.checkKeys()
         if "w" in keysPressed:
-            mdl.rotate(Vec3(-2, 0, 0))
+            #mdl.rotate(Vec3(-2, 0, 0))
             #mdl.move(Vec3(0, 0, 0.1))
+            cam.position.z += 0.1
             #cam.pitch += 0.1
         if "s" in keysPressed:
-            mdl.rotate(Vec3(2, 0, 0))
+            #mdl.rotate(Vec3(2, 0, 0))
             #mdl.move(Vec3(0, 0, -0.1))
+            cam.rotation.x += 0.1
             #cam.pitch -= 0.1
 
         if "a" in keysPressed:
-            mdl.rotate(Vec3(0, 2, 0))
+            #mdl.rotate(Vec3(0, 2, 0))
+            mdl.move(Vec3(-0.1, 0, 0))
             #cam.yaw += 0.1
         if "d" in keysPressed:
-            mdl.rotate(Vec3(0, -2, 0))
+            #mdl.rotate(Vec3(0, -2, 0))
+            mdl.move(Vec3(0.1, 0, 0))
             #cam.yaw -= 0.1
 
         if "q" in keysPressed:
