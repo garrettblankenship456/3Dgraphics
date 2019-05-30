@@ -523,7 +523,7 @@ class RenderObject:
         model = translateMatrix * scaleMatrix * rotationMatrixAll
 
         # Calculate MVP matrix
-        modelviewprojection = projection * view * model
+        modelviewprojection = projection * model
 
         # Make each polygon
         for i in range(0, len(self.vertices), 3):
@@ -677,63 +677,35 @@ class Camera:
 
 # Run the main function if this file is ran
 def main():
-    print("Generating window")
-    window = Window3d("Test graphics", 640, 480)
+    # Create window
+    window = Window3d("3D Demo", 350, 350) # Title, xsize, ysize
 
-    print("Generating camera")
-    cam = Camera(Vec3(0, 4, 0), 45, 640/480)
+    # Add light and camera
+    light = Light(Vec3(320, 100, 100), 1, 2) # position, intensity, radius
+    window.addLight(light) # Adding it to the scene)
+    cam = Camera(Vec3(0, 0, 0), 45, 640/480)
     window.addCamera(cam)
 
-    print("Generating light")
-    l = Light(Vec3(320, 100, 100), 1, 2)
-    window.addLight(l)
+    # Create meshes
+    # Creates a mesh from obj file, path, position, rotation, scale, color
+    cube = Model("models/cube.obj", Vec3(-2.25, -1, 15), Vec3(0, 45, 45), Vec3(1, 1, 1), Color(255, 0, 0))
+    cube.render(window) # Draws it to the window provided in the arguments
 
-    print("Generating model")
-    mdl = Model("models/cube.obj", Vec3(0, 0, 5), Vec3(0, 0, 0), Vec3(0.5, 0.5, 0.5), Color(255, 0, 0))
-    mdl.render(window)
-
+    # Main loop
     while True:
-        keysPressed = window.window.checkKeys()
-        if "w" in keysPressed:
-            #mdl.rotate(Vec3(-2, 0, 0))
-            #mdl.move(Vec3(0, 0, 0.1))
-            cam.position.z += 0.1
-            #cam.pitch += 0.1
-        if "s" in keysPressed:
-            #mdl.rotate(Vec3(2, 0, 0))
-            #mdl.move(Vec3(0, 0, -0.1))
-            cam.rotation.x += 0.1
-            #cam.pitch -= 0.1
+        # Rotates the cube on the x axis
+        cube.rotate(Vec3(2, 0, 0))
 
-        if "a" in keysPressed:
-            #mdl.rotate(Vec3(0, 2, 0))
-            mdl.move(Vec3(-0.1, 0, 0))
-            #cam.yaw += 0.1
-        if "d" in keysPressed:
-            #mdl.rotate(Vec3(0, -2, 0))
-            mdl.move(Vec3(0.1, 0, 0))
-            #cam.yaw -= 0.1
-
-        if "q" in keysPressed:
-            mdl.rotate(Vec3(0, 0, 2))
-            #cam.position.x += 1
-        if "e" in keysPressed:
-            mdl.rotate(Vec3(0, 0, -2))
-            #cam.position.x -= 1
-
-        if "c" in keysPressed:
-            mdl.setScale(add3d(Vec3(0.1, 0.1, 0.1), mdl.scale))
-        if "v" in keysPressed:
-            mdl.setScale(add3d(Vec3(-0.1, -0.1, -0.1), mdl.scale))
-
-        if "Escape" in keysPressed:
+        # Exit window if escape was pressed
+        if "Escape" in window.window.checkKeys():
             print("Exitting")
             break
 
+        # Update the window
         window.update()
-        sleep(0.01)
 
-    #window.window.getMouse()
+    # Graceful exit
+    window.window.close()
 
 
 if __name__ == "__main__":
