@@ -7,7 +7,8 @@ from time import sleep
 # TODO:
 #   Fix lookAt matrix
 #   Make lighting use 3d vectors instead of 2d
-#   Dont render anythi ng thats off the screen
+#   Dont render anything thats off the screen
+#   Fix depth tests
 
 # Data classes
 class Vec3:
@@ -189,9 +190,9 @@ def dot(v1, v2):
 def rotate3d(position, rotation, centerPos = Vec3(0, 0, 0)):
     """Rotates a 3d point around the center position"""
     # Convert rotation from degrees to radians
-    radX = rotation.x * 3.14 / 180
-    radY = rotation.y * 3.14 / 180
-    radZ = rotation.z * 3.14 / 180
+    radX = rotation.x * (3.14 / 180)
+    radY = rotation.y * (3.14 / 180)
+    radZ = rotation.z * (3.14 / 180)
     # Translate point to the center
     position.x -= centerPos.x
     position.y -= centerPos.y
